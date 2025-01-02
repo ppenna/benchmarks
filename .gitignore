@@ -1,0 +1,14 @@
+# Copyright(c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+# Cargo Artifacts
+Cargo.lock
+
+# Build Artifacts
+bin/
+target/
+
+# IDEs
+*.swo
+*.swp
+*.vscode/

@@ -1,0 +1,12 @@
+# Copyright(c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+[package]
+authors = ["Microsoft Corporation"]
+name = "guest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hyperlight-common = { workspace = true }
+hyperlight-guest = { workspace = true }

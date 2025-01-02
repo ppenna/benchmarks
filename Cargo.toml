@@ -1,0 +1,17 @@
+# Copyright(c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+[workspace]
+members = ["src/guest", "src/host"]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = "1.0.93"
+flexi_logger = "0.29.6"
+log = "0.4.22"
+
+hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight/", package = "hyperlight-guest" }
+hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight/", default-features = false, features = [
+    "kvm",
+], package = "hyperlight-host" }
+hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight/", default-features = false, package = "hyperlight-common" }

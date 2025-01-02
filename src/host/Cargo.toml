@@ -1,0 +1,15 @@
+# Copyright(c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+[package]
+authors = ["Microsoft Corporation"]
+name = "host"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+flexi_logger = { workspace = true }
+log = { workspace = true }
+hyperlight-host = { workspace = true }
+hyperlight-common = { workspace = true }

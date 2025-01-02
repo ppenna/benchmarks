@@ -7,6 +7,9 @@
 
 export RELEASE ?=
 export VERBOSE ?= yes
+export HTTP_ADDR ?= 127.0.0.1:8080
+export FREQUENCY ?= 1000000000
+export DURATION ?= 5
 
 #===================================================================================================
 # Directories
@@ -33,9 +36,10 @@ export GUEST_TARGET ?= x86_64-unknown-none
 #===================================================================================================
 
 export MAKE_DIRECTORY_COMMAND=mkdir -p $(BINARIES_DIRECTORY)
-export RUN_COMMAND=$(BINARIES_DIRECTORY)/host $(BINARIES_DIRECTORY)/guest
+export HOST_RUN_COMMAND=$(BINARIES_DIRECTORY)/host -listen $(HTTP_ADDR) -guest $(BINARIES_DIRECTORY)/guest
+export CLIENT_RUN_COMMAND=$(BINARIES_DIRECTORY)/client -connect $(HTTP_ADDR) -frequency $(FREQUENCY) -duration $(DURATION)
 
-all: all-host all-guest
+all: all-host all-guest all-client
 
 make-directories:
 ifeq ($(VERBOSE),)
@@ -44,16 +48,23 @@ else
 	$(MAKE_DIRECTORY_COMMAND)
 endif
 
-run: all
+run-host: $(BINARIES_DIRECTORY)/host $(BINARIES_DIRECTORY)/guest
 ifeq ($(VERBOSE),)
-	@$(RUN_COMMAND)
+	@$(HOST_RUN_COMMAND)
 else
-	$(RUN_COMMAND)
+	$(HOST_RUN_COMMAND)
 endif
 
-check: check-host check-guest
+run-client: $(BINARIES_DIRECTORY)/client
+ifeq ($(VERBOSE),)
+	@$(CLIENT_RUN_COMMAND)
+else
+	$(CLIENT_RUN_COMMAND)
+endif
 
-clean: clean-host clean-guest
+check: check-host check-guest check-client
+
+clean: clean-host clean-guest check-client
 	rm -rf target
 	rm -rf $(BINARIES_DIRECTORY)
 
@@ -83,6 +94,33 @@ check-host:
 
 clean-host:
 	$(CARGO) clean -p host
+
+#===================================================================================================
+# Build Rules for "Client" Project
+#===================================================================================================
+
+export CLIENT_BUILD_COMMAND=$(CARGO) build $(CARGO_FLAGS) -p client
+export CLIENT_CHECK_COMMAND=$(CARGO) check $(CARGO_FLAGS) -p client --message-format=json
+ifeq ($(RELEASE),)
+export CLIENT_TARGET_DIRECTORY=target/debug
+else
+export CLIENT_TARGET_DIRECTORY=target/release
+endif
+
+all-client: make-directories
+ifeq ($(VERBOSE),)
+	@$(CLIENT_BUILD_COMMAND) --quiet
+	@cp $(CLIENT_TARGET_DIRECTORY)/client $(BINARIES_DIRECTORY)
+else
+	$(CLIENT_BUILD_COMMAND)
+	cp $(CLIENT_TARGET_DIRECTORY)/client $(BINARIES_DIRECTORY)
+endif
+
+check-client:
+	$(CARGO) check $(CARGO_FLAGS) --message-format=json -p client
+
+clean-client:
+	$(CARGO) clean -p client
 
 #===================================================================================================
 # Build Rules for "Guest" Project

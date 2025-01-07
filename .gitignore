@@ -12,3 +12,7 @@ target/
 *.swo
 *.swp
 *.vscode/
+
+# Unikraft
+.unikraft
+.config*

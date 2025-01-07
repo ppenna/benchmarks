@@ -1,0 +1,8 @@
+[package]
+name = "rust-http-echo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tiny_http = "0.12"
+ascii = "1.1"

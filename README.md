@@ -35,8 +35,29 @@ make run-client
 #### Setup
 ```bash
 curl -sSfL https://get.kraftkit.sh | sh
+
+# (Optional) For zsh run the following commands to allow completion
 source ${HOME}/.zsh_kraft_completion;
 echo 'source ${HOME}/.zsh_kraft_completion;' >> ${HOME}/.zshrc;
 ```
 
+#### Compile
+```bash
+cd unikraft
+KRAFTKIT_TARGET=rust-http-echo cargo +nightly build -Z bu
+ild-std=std,panic_abort --target x86_64-unikraft-linux-musl
+```
+
 ### Run
+```bash
+# To run the server
+cd unikraft
+kraft run --rm --plat qemu --arch x86_64 -p 8080:8080 .
+
+# To test the server 
+curl localhost:8080
+
+# To run hyperlight client
+cd hyperlight
+make run-client
+```

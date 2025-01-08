@@ -16,3 +16,6 @@ target/
 # Unikraft
 .unikraft
 .config*
+
+# Firecracker
+firecracker/output

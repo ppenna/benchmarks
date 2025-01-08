@@ -79,7 +79,7 @@ mkdir output
 pushd output
 ARCH="$(uname -m)"
 
-# Downlood the kernel/vmlinux (obtained from [here](https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md)):
+# Download the kernel/vmlinux (obtained from [here](https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md)):
 latest=$(wget "http://spec.ccfc.min.s3.amazonaws.com/?prefix=firecracker-ci/v1.11/$ARCH/vmlinux-6.1&list-type=2" -O - 2>/dev/null | grep -oP "(?<=<Key>)(firecracker-ci/v1.11/$ARCH/vmlinux-6\.1\.[0-9]{1,3})(?=</Key>)")
 wget "https://s3.amazonaws.com/spec.ccfc.min/${latest}"
 vm_filename=$(basename ${latest})

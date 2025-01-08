@@ -1,0 +1,18 @@
+#!/sbin/openrc-run
+
+name=rust-http-echo
+description="Rust HTTP echo application for Firecracker"
+
+# Optional: Set your service's PID file if needed
+pidfile=/run/${RC_SVCNAME}.pid
+command=/usr/bin/start_rust_http_echo.sh  # Replace with the path to your command or script
+command_background=true
+output_log="/var/log/rust-http-echo.log"
+error_log="/var/log/rust-http-echo.err"
+
+depend() {
+    need configure-network
+    need net
+    after firewall
+    use logger
+}

@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+
+name=configure-network
+description="Configure a static IP from the kernel command args"
+
+# Optional: Set your service's PID file if needed
+pidfile=/run/${RC_SVCNAME}.pid
+command=/usr/bin/configure_vm_ip.sh  # Replace with the path to your command or script
+
+depend() {
+    need net
+    after firewall
+    use logger
+}

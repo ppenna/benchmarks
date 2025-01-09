@@ -24,8 +24,7 @@ make all
 #### Run
 ```bash
 # To run the host
-cd hyperlight
-make run-host
+make run-hyperlight-host
 
 # To run the client
 cd hyperlight
@@ -72,7 +71,7 @@ make run-client
 rustup target add x86_64-unknown-linux-musl
 
 # To create the rootfs run:
-cd firecracker
+cd scripts/firecracker
 ./create_rootfs.sh
 
 mkdir output
@@ -96,16 +95,17 @@ popd
 
 ### Run
 ```bash
-cd firecracker
+ROOT_DIR="<repo root dir>"
+cd ${ROOT_DIR}/scripts/firecracker
 # Configure network
 ./setup_network.sh
 # Run server
-sudo ./output/firecracker --api-sock /tmp/firecracker39.socket --config-file ./vm_config.json
+sudo ${ROOT_DIR}/scripts/firecracker/output/firecracker --api-sock /tmp/firecracker.socket --config-file ${ROOT_DIR}/config/firecracker/vm_config.json
 
 # To test the server 
 curl -i -X POST -H "Content-Type: application/json" -d '{"data": [1,2]}' 172.16.0.2:8080
 
 # To run hyperlight client
-cd hyperlight
+cd ${ROOT_DIR}
 make run-client 
 ```

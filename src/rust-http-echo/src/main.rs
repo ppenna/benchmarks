@@ -6,7 +6,6 @@
 //==================================================================================================
 
 mod args;
-mod http;
 mod logging;
 
 //==================================================================================================
@@ -17,11 +16,9 @@ mod logging;
 #[macro_use]
 extern crate log;
 
-use crate::{
-    args::Args,
-    http::HttpService,
-};
+use crate::args::Args;
 use ::anyhow::Result;
+use ::http_library::HttpService;
 use ::hyper::server::conn::http1;
 use ::hyper_util::rt::TokioIo;
 use ::tokio::{

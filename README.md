@@ -42,19 +42,19 @@ echo 'source ${HOME}/.zsh_kraft_completion;' >> ${HOME}/.zshrc;
 
 #### Compile
 ```bash
-cd unikraft
-KRAFTKIT_TARGET=rust-http-echo cargo +nightly build -Z bu
-ild-std=std,panic_abort --target x86_64-unikraft-linux-musl
+cd ${ROOT_DIR} 
+# Suggestion: always run make clean-unikraft-server before, as unikraft compilation has issues sometimes
+make all-unikraft-server
 ```
 
 ### Run
 ```bash
 # To run the server
-cd unikraft
+cd ${ROOT_DIR} 
 kraft run --rm --plat qemu --arch x86_64 -p 8080:8080 .
 
 # To test the server 
-curl localhost:8080
+curl -i -X POST -H "Content-Type: application/json" -d '{"data": [1,2]}' 127.0.0.1:8080
 
 # To run hyperlight client
 cd hyperlight

@@ -8,7 +8,9 @@ members = [
     "src/hyperlight/host", 
     "src/rust-http-echo",
     "src/eval/latency",
-    ]
+    "src/unikraft", 
+    "src/http-library",
+]
 resolver = "2"
 
 [workspace.dependencies]

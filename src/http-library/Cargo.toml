@@ -2,18 +2,15 @@
 # Licensed under the MIT License.
 
 [package]
-authors = ["Microsoft Corporation"]
-name = "rust-http-echo"
+name = "http-library"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
-flexi_logger = { workspace = true }
-log = { workspace = true }
+serde = { workspace = true, features = ["std", "derive"] }
+serde_json = { workspace = true, features = ["std"] }
 hyper = { workspace = true, features = ["full"] }
 tokio = { workspace = true, features = ["full"] }
 http-body-util = { workspace = true }
-hyper-util = { workspace = true, features = ["full"] }
-http-library = { path = "../http-library" }
-
+log = { workspace = true }

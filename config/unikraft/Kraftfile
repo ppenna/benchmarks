@@ -1,6 +1,6 @@
 spec: v0.6
 
-name: rust-http-echo
+name: unikraft-rust-http-echo
 
 unikraft: stable
 

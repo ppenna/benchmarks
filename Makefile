@@ -42,7 +42,8 @@ export MAKE_DIRECTORY_COMMAND=mkdir -p $(BINARIES_DIRECTORY)
 export HYPERLIGHT_HOST_RUN_COMMAND=$(BINARIES_DIRECTORY)/hyperlight-host-nanvix -listen $(HTTP_ADDR) -guest $(BINARIES_DIRECTORY)/hyperlight-guest-nanvix
 export CLIENT_RUN_COMMAND=$(BINARIES_DIRECTORY)/client -connect $(HTTP_ADDR) -frequency $(FREQUENCY) -duration $(DURATION)
 
-all: all-hyperlight-host all-hyperlight-guest all-client all-http-echo
+# Unikraft build is not added to the default build
+all: all-hyperlight-host all-hyperlight-guest all-client all-http-echo all-cold-start
 
 make-directories:
 ifeq ($(VERBOSE),)
@@ -65,9 +66,9 @@ else
 	$(CLIENT_RUN_COMMAND)
 endif
 
-check: check-hyperlight-host check-hyperlight-guest check-client check-http-echo
+check: check-hyperlight-host check-hyperlight-guest check-client check-http-echo check-cold-start
 
-clean: clean-hyperlight-host clean-hyperlight-guest clean-client clean-http-echo
+clean: clean-hyperlight-host clean-hyperlight-guest clean-client clean-http-echo clean-cold-start
 	rm -rf target
 	rm -rf $(BINARIES_DIRECTORY)
 
@@ -210,3 +211,20 @@ check-cold-start:
 clean-cold-start:
 	$(CARGO) clean -p cold-start-latency 
 	rm -f $(BINARIES_DIRECTORY)/cold-start-latency
+
+#===================================================================================================
+# Build Rules for "Unikraft server" Project
+#===================================================================================================
+export UNIKRAFT_SERVER_BUILD_COMMAND=KRAFTKIT_TARGET=unikraft-rust-http-echo $(CARGO) +nightly build -Z build-std=std,panic_abort --target x86_64-unikraft-linux-musl -p unikraft-rust-http-echo
+
+all-unikraft-server:
+ifeq ($(VERBOSE),)
+	@$(UNIKRAFT_SERVER_BUILD_COMMAND) --quiet
+else
+	$(UNIKRAFT_SERVER_BUILD_COMMAND)
+endif
+
+clean-unikraft-server:
+	$(CARGO) +nightly clean --target x86_64-unikraft-linux-musl -p unikraft-rust-http-echo
+	rm -rf .unikraft
+	rm -f .config.unikraft-rust-http-echo_qemu-x86_64

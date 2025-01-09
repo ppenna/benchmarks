@@ -7,6 +7,7 @@ members = [
     "src/hyperlight/guest", 
     "src/hyperlight/host", 
     "src/rust-http-echo",
+    "src/eval/latency",
     ]
 resolver = "2"
 

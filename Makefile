@@ -182,3 +182,31 @@ check-http-echo:
 clean-http-echo:
 	$(CARGO) clean -p rust-http-echo 
 	rm -f $(BINARIES_DIRECTORY)/rust-http-echo
+
+#===================================================================================================
+# Build Rules for "Cold start latency" Project
+#===================================================================================================
+
+export COLD_START_BUILD_COMMAND=$(CARGO) build $(CARGO_FLAGS) -p cold-start-latency 
+export COLD_START_CHECK_COMMAND=$(CARGO) check $(CARGO_FLAGS) -p cold-start-latency --message-format=json
+ifeq ($(RELEASE),)
+export COLD_START_TARGET_DIRECTORY=target/debug
+else
+export COLD_START_TARGET_DIRECTORY=target/release
+endif
+
+all-cold-start: make-directories
+ifeq ($(VERBOSE),)
+	@$(COLD_START_BUILD_COMMAND) --quiet
+	@cp $(COLD_START_TARGET_DIRECTORY)/cold-start-latency $(BINARIES_DIRECTORY)
+else
+	$(COLD_START_BUILD_COMMAND)
+	cp $(COLD_START_TARGET_DIRECTORY)/cold-start-latency $(BINARIES_DIRECTORY)
+endif
+
+check-cold-start:
+	$(CARGO) check $(CARGO_FLAGS) --message-format=json -p cold-start-latency 
+
+clean-cold-start:
+	$(CARGO) clean -p cold-start-latency 
+	rm -f $(BINARIES_DIRECTORY)/cold-start-latency

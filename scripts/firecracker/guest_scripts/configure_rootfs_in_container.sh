@@ -28,7 +28,7 @@ echo 'nameserver 8.8.8.8' > /etc/resolv.conf
 
 ## Copy executables
 # Copy http executable 
-cp /script/rust-http-echo /usr/bin/rust-http-echo
+cp /script/output/rust-http-echo /usr/bin/rust-http-echo
 cp /script/guest_scripts/start_rust_http_echo.sh /usr/bin/start_rust_http_echo.sh
 chmod +x /usr/bin/rust-http-echo
 chmod +x /usr/bin/start_rust_http_echo.sh

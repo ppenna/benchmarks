@@ -74,7 +74,7 @@ rustup target add x86_64-unknown-linux-musl
 cd scripts/firecracker
 ./create_rootfs.sh
 
-mkdir output
+mkdir -p output
 pushd output
 ARCH="$(uname -m)"
 
@@ -96,11 +96,14 @@ popd
 ### Run
 ```bash
 ROOT_DIR="<repo root dir>"
-cd ${ROOT_DIR}/scripts/firecracker
+cd ${ROOT_DIR}/scripts/firecracker/output
+cp ${ROOT_DIR}/config/firecracker/vm_config.json .
+touch -p firecracker.log
+
 # Configure network
 ./setup_network.sh
 # Run server
-sudo ${ROOT_DIR}/scripts/firecracker/output/firecracker --api-sock /tmp/firecracker.socket --config-file ${ROOT_DIR}/config/firecracker/vm_config.json
+${ROOT_DIR}/scripts/firecracker/output/firecracker --api-sock /tmp/firecracker.socket --config-file ${ROOT_DIR}/scripts/firecracker/vm_config.json
 
 # To test the server 
 curl -i -X POST -H "Content-Type: application/json" -d '{"data": [1,2]}' 172.16.0.2:8080

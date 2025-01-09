@@ -18,4 +18,4 @@ target/
 .config*
 
 # Firecracker
-firecracker/output
+scripts/firecracker/output

@@ -4,17 +4,19 @@ ROOTFS_FILENAME="rootfs.ext4"
 TMP_MOUNT="/tmp/my-rootfs"
 
 SCRIPT_DIR=$(dirname $(realpath $0))
+ROOT_DIR=${SCRIPT_DIR}/../..
+OUTPUT_DIR=$SCRIPT_DIR/output
+mkdir -p $OUTPUT_DIR
 
 # Compile the http server
-pushd $SCRIPT_DIR/rust-http-server/
-cargo build --release --target x86_64-unknown-linux-musl
+pushd $ROOT_DIR
+make all-http-echo HTTP_ECHO_TARGET=x86_64-unknown-linux-musl RELEASE=yes
 
-# Set the output dir to the directory where this script is located 
-OUTPUT_DIR=$SCRIPT_DIR/output
+cp bin/rust-http-echo ${OUTPUT_DIR}/rust-http-echo
+popd
 
-mkdir -p $OUTPUT_DIR
+# Create all relevant files
 pushd $OUTPUT_DIR
-
 # Create ssh key
 ssh-keygen -t rsa -f id_rsa -N ""
 mv -v id_rsa ./rust-http-echo.id_rsa
@@ -33,5 +35,4 @@ sudo umount ${TMP_MOUNT}
 
 echo "Rootfs generated at ${OUTPUT_DIR}/${ROOTFS_FILENAME}"
 
-popd
 popd

@@ -31,6 +31,9 @@ export CARGO_FLAGS ?= $(if $(RELEASE),--release)
 export RUSTC_FLAGS_HYPERLIGHT_GUEST := "-C panic=abort -C code-model=small -C link-args=-eentrypoint"
 export HYPERLIGHT_GUEST_TARGET ?= x86_64-unknown-none
 
+# HTTP Echo Server
+export HTTP_ECHO_TARGET ?= x86_64-unknown-linux-gnu
+
 #===================================================================================================
 # Global Build Rules
 #===================================================================================================
@@ -105,7 +108,7 @@ export HYPERLIGHT_GUEST_CHECK_COMMAND=RUSTFLAGS=$(RUSTC_FLAGS_HYPERLIGHT_GUEST) 
 ifeq ($(RELEASE),)
 export HYPERLIGHT_GUEST_TARGET_DIRECTORY=target/$(HYPERLIGHT_GUEST_TARGET)/debug
 else
-  HYPERLIGHT_GUEST_TARGET_DIRECTORY=target/$(HYPERLIGHT_GUEST_TARGET)/release
+export HYPERLIGHT_GUEST_TARGET_DIRECTORY=target/$(HYPERLIGHT_GUEST_TARGET)/release
 endif
 
 all-hyperlight-guest: make-directories
@@ -156,12 +159,12 @@ clean-client:
 # Build Rules for "Rust HTTP Server" Project
 #===================================================================================================
 
-export HTTP_ECHO_BUILD_COMMAND=$(CARGO) build $(CARGO_FLAGS) -p rust-http-echo
-export HTTP_ECHO_CHECK_COMMAND=$(CARGO) check $(CARGO_FLAGS) -p rust-http-echo --message-format=json
+export HTTP_ECHO_BUILD_COMMAND=$(CARGO) build $(CARGO_FLAGS) --target $(HTTP_ECHO_TARGET) -p rust-http-echo
+export HTTP_ECHO_CHECK_COMMAND=$(CARGO) check $(CARGO_FLAGS) --target $(HTTP_ECHO_TARGET) -p rust-http-echo --message-format=json
 ifeq ($(RELEASE),)
-export HTTP_ECHO_TARGET_DIRECTORY=target/debug
+export HTTP_ECHO_TARGET_DIRECTORY=target/$(HTTP_ECHO_TARGET)/debug
 else
-export HTTP_ECHO_TARGET_DIRECTORY=target/release
+export HTTP_ECHO_TARGET_DIRECTORY=target/$(HTTP_ECHO_TARGET)/release
 endif
 
 all-http-echo: make-directories

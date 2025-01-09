@@ -27,19 +27,19 @@ export CARGO ?= $(HOME)/.cargo/bin/cargo
 # Common Flags
 export CARGO_FLAGS ?= $(if $(RELEASE),--release)
 
-# Guest
-export RUSTC_FLAGS_GUEST := "-C panic=abort -C code-model=small -C link-args=-eentrypoint"
-export GUEST_TARGET ?= x86_64-unknown-none
+# Hyperlight Guest
+export RUSTC_FLAGS_HYPERLIGHT_GUEST := "-C panic=abort -C code-model=small -C link-args=-eentrypoint"
+export HYPERLIGHT_GUEST_TARGET ?= x86_64-unknown-none
 
 #===================================================================================================
 # Global Build Rules
 #===================================================================================================
 
 export MAKE_DIRECTORY_COMMAND=mkdir -p $(BINARIES_DIRECTORY)
-export HOST_RUN_COMMAND=$(BINARIES_DIRECTORY)/host -listen $(HTTP_ADDR) -guest $(BINARIES_DIRECTORY)/guest
+export HYPERLIGHT_HOST_RUN_COMMAND=$(BINARIES_DIRECTORY)/hyperlight-host-nanvix -listen $(HTTP_ADDR) -guest $(BINARIES_DIRECTORY)/hyperlight-guest-nanvix
 export CLIENT_RUN_COMMAND=$(BINARIES_DIRECTORY)/client -connect $(HTTP_ADDR) -frequency $(FREQUENCY) -duration $(DURATION)
 
-all: all-host all-guest all-client
+all: all-hyperlight-host all-hyperlight-guest all-client
 
 make-directories:
 ifeq ($(VERBOSE),)
@@ -48,11 +48,11 @@ else
 	$(MAKE_DIRECTORY_COMMAND)
 endif
 
-run-host: $(BINARIES_DIRECTORY)/host $(BINARIES_DIRECTORY)/guest
+run-hyperlight-host: $(BINARIES_DIRECTORY)/hyperlight-host-nanvix $(BINARIES_DIRECTORY)/hyperlight-guest-nanvix
 ifeq ($(VERBOSE),)
-	@$(HOST_RUN_COMMAND)
+	@$(HYPERLIGHT_HOST_RUN_COMMAND)
 else
-	$(HOST_RUN_COMMAND)
+	$(HYPERLIGHT_HOST_RUN_COMMAND)
 endif
 
 run-client: $(BINARIES_DIRECTORY)/client
@@ -62,9 +62,9 @@ else
 	$(CLIENT_RUN_COMMAND)
 endif
 
-check: check-host check-guest check-client
+check: check-hyperlight-host check-hyperlight-guest check-client
 
-clean: clean-host clean-guest check-client
+clean: clean-hyperlight-host clean-hyperlight-guest check-client
 	rm -rf target
 	rm -rf $(BINARIES_DIRECTORY)
 
@@ -72,28 +72,28 @@ clean: clean-host clean-guest check-client
 # Build Rules for "Host" Project
 #===================================================================================================
 
-export HOST_BUILD_COMMAND=$(CARGO) build $(CARGO_FLAGS) -p host
-export HOST_CHECK_COMMAND=$(CARGO) check $(CARGO_FLAGS) -p host --message-format=json
+export HYPERLIGHT_HOST_BUILD_COMMAND=$(CARGO) build $(CARGO_FLAGS) -p hyperlight-host-nanvix
+export HPERLIGHT_HOST_CHECK_COMMAND=$(CARGO) check $(CARGO_FLAGS) -p hyperlight-host-nanvix --message-format=json
 ifeq ($(RELEASE),)
-export HOST_TARGET_DIRECTORY=target/debug
+export HYPERLIGHT_HOST_TARGET_DIRECTORY=target/debug
 else
-export HOST_TARGET_DIRECTORY=target/release
+export HYPERLIGHT_HOST_TARGET_DIRECTORY=target/release
 endif
 
-all-host: make-directories
+all-hyperlight-host: make-directories
 ifeq ($(VERBOSE),)
-	@$(HOST_BUILD_COMMAND) --quiet
-	@cp $(HOST_TARGET_DIRECTORY)/host $(BINARIES_DIRECTORY)
+	@$(HYPERLIGHT_HOST_BUILD_COMMAND) --quiet
+	@cp $(HYPERLIGHT_HOST_TARGET_DIRECTORY)/hyperlight-host-nanvix $(BINARIES_DIRECTORY)
 else
-	$(HOST_BUILD_COMMAND)
-	cp $(HOST_TARGET_DIRECTORY)/host $(BINARIES_DIRECTORY)
+	$(HYPERLIGHT_HOST_BUILD_COMMAND)
+	cp $(HYPERLIGHT_HOST_TARGET_DIRECTORY)/hyperlight-host-nanvix $(BINARIES_DIRECTORY)
 endif
 
-check-host:
-	$(CARGO) check $(CARGO_FLAGS) --message-format=json -p host
+check-hyperlight-host:
+	$(CARGO) check $(CARGO_FLAGS) --message-format=json -p hyperlight-host-nanvix
 
-clean-host:
-	$(CARGO) clean -p host
+clean-hyperlight-host:
+	$(CARGO) clean -p hyperlight-host-nanvix
 
 #===================================================================================================
 # Build Rules for "Client" Project
@@ -123,28 +123,28 @@ clean-client:
 	$(CARGO) clean -p client
 
 #===================================================================================================
-# Build Rules for "Guest" Project
+# Build Rules for "hyperlight-guest" Project
 #===================================================================================================
 
-export GUEST_BUILD_COMMAND=RUSTFLAGS=$(RUSTC_FLAGS_GUEST) $(CARGO) build $(CARGO_FLAGS) $(CARGO_FLAGS_GUEST) --target $(GUEST_TARGET) -p guest
-export GUEST_CHECK_COMMAND=RUSTFLAGS=$(RUSTC_FLAGS_GUEST) $(CARGO) check $(CARGO_FLAGS) $(CARGO_FLAGS_GUEST) --target $(GUEST_TARGET) -p guest --message-format=json
+export HYPERLIGHT_GUEST_BUILD_COMMAND=RUSTFLAGS=$(RUSTC_FLAGS_HYPERLIGHT_GUEST) $(CARGO) build $(CARGO_FLAGS) $(CARGO_FLAGS_GUEST) --target $(HYPERLIGHT_GUEST_TARGET) -p hyperlight-guest-nanvix
+export GUEST_CHECK_COMMAND=RUSTFLAGS=$(RUSTC_FLAGS_HYPERLIGHT_GUEST) $(CARGO) check $(CARGO_FLAGS) $(CARGO_FLAGS_GUEST) --target $(HYPERLIGHT_GUEST_TARGET) -p hyperlight-guest-nanvix --message-format=json
 ifeq ($(RELEASE),)
-export GUEST_TARGET_DIRECTORY=target/$(GUEST_TARGET)/debug
+export HYPERLIGHT_GUEST_TARGET_DIRECTORY=target/$(HYPERLIGHT_GUEST_TARGET)/debug
 else
- GUEST_TARGET_DIRECTORY=target/$(GUEST_TARGET)/release
+  HYPERLIGHT_GUEST_TARGET_DIRECTORY=target/$(HYPERLIGHT_GUEST_TARGET)/release
 endif
 
-all-guest: make-directories
+all-hyperlight-guest: make-directories
 ifeq ($(VERBOSE),)
-	@$(GUEST_BUILD_COMMAND) --quiet
-	@cp $(GUEST_TARGET_DIRECTORY)/guest $(BINARIES_DIRECTORY)
+	@$(HYPERLIGHT_GUEST_BUILD_COMMAND) --quiet
+	@cp $(HYPERLIGHT_GUEST_TARGET_DIRECTORY)/hyperlight-guest-nanvix $(BINARIES_DIRECTORY)
 else
-	$(GUEST_BUILD_COMMAND)
-	cp $(GUEST_TARGET_DIRECTORY)/guest $(BINARIES_DIRECTORY)
+	$(HYPERLIGHT_GUEST_BUILD_COMMAND)
+	cp $(HYPERLIGHT_GUEST_TARGET_DIRECTORY)/hyperlight-guest-nanvix $(BINARIES_DIRECTORY)
 endif
 
-check-guest:
-	$(GUEST_CHECK_COMMAND)
+check-hyperlight-guest:
+	$(HYPERLIGHT_GUEST_CHECK_COMMAND)
 
-clean-guest:
-	$(CARGO) clean -p guest
+clean-hyperlight-guest:
+	$(CARGO) clean -p hyperlight-guest-nanvix

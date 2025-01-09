@@ -3,7 +3,7 @@
 
 [package]
 authors = ["Microsoft Corporation"]
-name = "guest"
+name = "hyperlight-guest-nanvix"
 version = "0.1.0"
 edition = "2021"
 

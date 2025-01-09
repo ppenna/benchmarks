@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 [workspace]
-members = ["src/guest", "src/host", "src/client"]
+members = ["src/hyperlight/guest", "src/hyperlight/host", "src/eval/client"]
 resolver = "2"
 
 [workspace.dependencies]

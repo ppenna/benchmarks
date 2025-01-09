@@ -22,12 +22,9 @@ mod args;
 extern crate log;
 
 use self::args::Args;
-use ::anyhow::Result;
+use client_lib::{build_request, send_request, MAX_REQUEST_SIZE};
+use ::anyhow::Result; 
 use ::flexi_logger::Logger;
-use ::serde_json::{
-    json,
-    Value,
-};
 use ::std::{
     env,
     sync::{
@@ -41,17 +38,9 @@ use ::std::{
         Instant,
     },
 };
-use ::tokio::{
-    io::{
-        AsyncBufReadExt,
-        AsyncReadExt,
-        AsyncWriteExt,
-    },
-    net::TcpStream,
-    sync::{
-        mpsc,
-        Mutex,
-    },
+use ::tokio::sync::{
+    mpsc,
+    Mutex,
 };
 use tokio::task::JoinHandle;
 
@@ -59,8 +48,6 @@ use tokio::task::JoinHandle;
 // Constants
 //==================================================================================================
 
-const MAX_RESPONSE_SIZE: usize = 1024;
-const MAX_REQUEST_SIZE: usize = 1024;
 
 //==================================================================================================
 // Standalone Functions
@@ -191,45 +178,19 @@ async fn client(
             // Spawn a new asynchronous task.
             let handle: JoinHandle<std::result::Result<(), anyhow::Error>> =
                 tokio::spawn(async move {
-                    let now: Instant = std::time::Instant::now();
-                    let mut stream: TcpStream = TcpStream::connect(sockaddr_clone).await?;
-                    debug!("connected to server");
-                    stream.write_all(&http_request_clone).await?;
-                    let mut response: Vec<u8> = vec![0u8; MAX_RESPONSE_SIZE];
-
-                    // Parse response.
-                    loop {
-                        match stream.read(&mut response).await {
-                            // Succeeded to read from socket.
-                            Ok(n) => {
-                                // Check if connection was closed.
-                                if n == 0 {
-                                    anyhow::bail!("Connection closed by server");
-                                }
-                                // Try to read the response
-                                let reader = tokio::io::BufReader::new(&response[..n] as &[u8]);
-                                let mut lines = reader.lines();
-                                // Consume all lines.
-                                while let Some(line) = lines.next_line().await? {
-                                    // Check if are done parsing the response.
-                                    if line.is_empty() {
-                                        let elapsed: u128 = now.elapsed().as_nanos();
-                                        latencies_clone.lock().await.push(elapsed as u64);
-                                        requests_clone
-                                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                                        debug!("elapsed: {} ns", elapsed);
-                                        stream.shutdown().await?;
-                                        debug!("disconnected from server");
-                                        return Ok(());
-                                    }
-                                }
-                            },
-                            // Failed to read from socket.
-                            Err(e) => {
-                                anyhow::bail!("failed to read from socket: {}", e);
-                            },
-                        }
+                    match send_request(sockaddr_clone, http_request_clone).await {
+                        Ok(elapsed) => {
+                            latencies_clone.lock().await.push(elapsed as u64);
+                            requests_clone
+                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            debug!("elapsed: {} ns", elapsed);
+                            Ok(())
+                        },
+                        Err(_) => {
+                            anyhow::bail!("Connection closed by server");
+                        },
                     }
+
                 });
 
             handles.push(handle);
@@ -242,18 +203,4 @@ async fn client(
             stop_sending = true;
         }
     }
-}
-
-fn build_request(data: Vec<u8>) -> Vec<u8> {
-    let json_obj: Value = json!({
-        "data": data,
-    });
-
-    format!(
-        "POST / HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
-        json_obj.to_string().len(),
-        json_obj
-    )
-    .as_bytes()
-    .to_vec()
 }

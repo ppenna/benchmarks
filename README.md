@@ -112,3 +112,17 @@ curl -i -X POST -H "Content-Type: application/json" -d '{"data": [1,2]}' 172.16.
 cd ${ROOT_DIR}
 make run-client 
 ```
+
+### Eval
+```bash
+ROOT_DIR="<repo root dir>"
+mkdir -p ${ROOT_DIR}/scripts/firecracker/output
+touch ${ROOT_DIR}/scripts/firecracker/output/firecracker.log
+cp ${ROOT_DIR}/config/firecracker/vm_config.json ${ROOT_DIR}/scripts/firecracker/output/vm_config.json.
+
+pushd $ROOT_DIR
+make all-cold-start
+./bin/cold-start-latency -config ./config/latency_eval/config.json
+popd
+
+```

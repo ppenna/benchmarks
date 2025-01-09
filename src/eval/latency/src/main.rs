@@ -1,11 +1,13 @@
 mod args;
 
 use args::Args;
+use client_lib::{build_request, send_request, MAX_REQUEST_SIZE};
 use serde::Deserialize;
 use std::process::{Child, Command, Stdio};
 use std::net::TcpStream;
 use std::time::Duration;
 use std::time::Instant;
+use std::sync::Arc;
 use tokio::time::sleep;
 
 #[derive(Deserialize)]
@@ -15,6 +17,7 @@ struct Config {
     config_file: String,
     target_ip: String,
     port_to_check: u16,
+    data_size: usize,
 }
 
 async fn check_port(ip: &str, port: u16) -> bool {
@@ -95,6 +98,31 @@ async fn main() {
             std::process::exit(1);
         }
     }
+
+    let before_sending_message = Instant::now();
+
+    // Build the request
+    if config.data_size > MAX_REQUEST_SIZE {
+        panic!("Request size is too large");
+    }
+    let request_data: Vec<u8> = vec![0u8; config.data_size];
+    let http_request: Arc<Vec<u8>> = Arc::new(build_request(request_data));
+
+    // Send the request
+    let address = format!("{}:{}", config.target_ip, config.port_to_check);
+    match send_request(address, http_request).await {
+        Ok(_) => {
+            println!("Request sent successfully");
+        }
+        Err(e) => {
+            eprintln!("Failed to send request: {}", e);
+            process_info.kill().expect("Failed to kill Firecracker VM");
+            std::process::exit(1);
+        }
+    }
+
+    let elapsed_in_micros = before_sending_message.elapsed().as_micros();
+    println!("Took {} microseconds to send the request", elapsed_in_micros);
 
     // Kill the Firecracker VM
     process_info.kill().expect("Failed to kill Firecracker VM");

@@ -8,11 +8,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+client_lib = { path = "../client_lib" }
 anyhow = { workspace = true }
 flexi_logger = { workspace = true }
 log = { workspace = true }
-serde = { workspace = true, features = ["std", "derive"] }
-serde_json = { workspace = true, features = ["std"] }
 
 hyperlight-host = { workspace = true }
 hyperlight-common = { workspace = true }

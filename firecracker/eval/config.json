@@ -1,0 +1,7 @@
+{
+  "firecracker_binary_dir": "/home/quique/Src/nanvix-hotos-2025/firecracker/output", 
+  "firecracker_socket": "/tmp/firecracker132.socket",
+  "config_file": "/home/quique/Src/nanvix-hotos-2025/firecracker/output/vm_config.json",
+  "target_ip": "172.16.0.2",
+  "port_to_check": 8080
+}

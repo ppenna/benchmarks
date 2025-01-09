@@ -6,7 +6,7 @@ TMP_MOUNT="/tmp/my-rootfs"
 SCRIPT_DIR=$(dirname $(realpath $0))
 
 # Compile the http server
-pushd $SCRIPT_DIR
+pushd $SCRIPT_DIR/rust-http-server/
 cargo build --release --target x86_64-unknown-linux-musl
 
 # Set the output dir to the directory where this script is located 

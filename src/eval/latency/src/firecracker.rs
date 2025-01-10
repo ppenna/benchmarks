@@ -86,7 +86,7 @@ impl Firecracker {
         // Rewrite the template file with the correct values for {{guest_ip}}, {{tap_ip}}, {{tap_id}}, {{mac_address}}, and {{firecracker_log_location}}
         let result = template
             .replace("{{guest_ip}}", &self.get_target_ip())
-            .replace("{{tap_ip}}", &&self.get_gateway_ip())
+            .replace("{{tap_ip}}", &self.get_gateway_ip())
             .replace("{{tap_id}}", &format!("tap{}", self.iteration))
             .replace("{{mac_address}}", &self.get_mac_address())
             .replace("{{firecracker_log_location}}", &self.log_location);

@@ -12,15 +12,15 @@ async fn main() -> Result<(), std::io::Error> {
     let http_listener: TcpListener = TcpListener::bind(listen_address).await?;
     loop {
         match http_listener.accept().await {
-            Ok((stream, sockaddr)) => {
+            Ok((stream, _sockaddr)) => {
                 let client = HttpService::new();
                 let io: TokioIo<TcpStream> = TokioIo::new(stream);
                 if let Err(e) = http1::Builder::new().serve_connection(io, client).await  {
-                    println!("failed to serve connection ({:?})", e);
+                    eprintln!("failed to serve connection ({:?})", e);
                 }
             },
             Err(e) => {
-                println!("failed to accept connection ({:?})", e);
+                eprintln!("failed to accept connection ({:?})", e);
             },
         }
     }

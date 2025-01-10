@@ -15,7 +15,6 @@ struct FirecrackerConfig {
     network_cleanup_file: String,
 }
 
-
 pub struct Firecracker {
     id: String,
     config: FirecrackerConfig,

@@ -1,0 +1,7 @@
+{
+  "firecracker_binary_dir": "/home/quique/Src/nanvix-hotos-2025/scripts/firecracker/output", 
+  "firecracker_socket_prefix": "/tmp/firecracker",
+  "config_file_template": "/home/quique/Src/nanvix-hotos-2025/scripts/firecracker/output/vm_config.json",
+  "network_setup_file": "/home/quique/Src/nanvix-hotos-2025/scripts/firecracker/setup_network.sh",
+  "network_cleanup_file": "/home/quique/Src/nanvix-hotos-2025/scripts/firecracker/clean_network.sh"
+}

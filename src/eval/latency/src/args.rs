@@ -33,7 +33,7 @@ impl Args {
         let mut config_json: String = String::new();
         let mut data_size: usize = 1024;
         let mut invocations: u32 = 1000;
-        let mut iterations: u16 = 5;
+        let mut iterations: u16 = 10;
 
         let mut i: usize = 1;
         while i < args.len() {

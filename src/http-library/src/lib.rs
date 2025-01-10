@@ -84,6 +84,12 @@ impl HttpService {
     }
 }
 
+impl Default for HttpService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Service<Request<Incoming>> for HttpService {
     type Response = Response<Full<Bytes>>;
     type Error = hyper::Error;

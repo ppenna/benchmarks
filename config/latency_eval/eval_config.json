@@ -1,6 +1,10 @@
 {
     "evals": [
         {
+            "type_of_eval": "firecracker-snapshot",
+            "config_location": "/home/quique/Src/nanvix-hotos-2025/config/latency_eval/firecracker_snapshot_config.json"
+        },
+        {
             "type_of_eval": "unikraft",
             "config_location": "/home/quique/Src/nanvix-hotos-2025/config/latency_eval/unikraft_config.json"
         },

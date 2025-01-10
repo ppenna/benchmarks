@@ -98,12 +98,13 @@ popd
 ROOT_DIR="<repo root dir>"
 cd ${ROOT_DIR}/scripts/firecracker/output
 cp ${ROOT_DIR}/config/firecracker/vm_config.json .
-touch -p firecracker.log
+touch /tmp/firecracker.log
 
 # Configure network
-./setup_network.sh
+${ROOT_DIR}/scripts/firecracker/setup_network.sh
 # Run server
-${ROOT_DIR}/scripts/firecracker/output/firecracker --api-sock /tmp/firecracker.socket --config-file ${ROOT_DIR}/scripts/firecracker/vm_config.json
+FC_SOCKET="/tmp/firecracker.socket"
+${ROOT_DIR}/scripts/firecracker/output/firecracker --api-sock ${FC_SOCKET} --config-file ${ROOT_DIR}/scripts/firecracker/output/vm_config.json
 
 # To test the server 
 curl -i -X POST -H "Content-Type: application/json" -d '{"data": [1,2]}' 172.16.0.2:8080
@@ -117,12 +118,20 @@ make run-client
 ```bash
 ROOT_DIR="<repo root dir>"
 mkdir -p ${ROOT_DIR}/scripts/firecracker/output
-touch ${ROOT_DIR}/scripts/firecracker/output/firecracker.log
+touch /tmp/firecracker.log
 cp ${ROOT_DIR}/config/firecracker/vm_config.json ${ROOT_DIR}/scripts/firecracker/output/vm_config.json.
 
 pushd $ROOT_DIR
 make all-cold-start
 ./bin/cold-start-latency -config ./config/latency_eval/config.json
 popd
+```
 
+### Create a snapshot
+```bash
+# First, start the VM as shown in the Run section for Firecracker
+FC_SOCKET="/tmp/firecracker-snapshot.socket"
+SNAPSHOT_PATH="/tmp/snapshot_file"
+MEMFILE_PATH="/tmp/mem_file"
+${ROOT_FILE}/scripts/firecracker/create_snapshot.sh ${FC_SOCKET} ${SNAPSHOT_PATH} ${MEMFILE_PATH}
 ```

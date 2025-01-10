@@ -1,11 +1,13 @@
 mod args;
 mod firecracker;
+mod firecracker_snapshot;
 mod process;
 mod sandbox;
 mod unikraft;
 
 use args::Args;
 use firecracker::Firecracker;
+use firecracker_snapshot::FirecrackerSnapshot;
 use sandbox::Sandbox;
 use process::Process;
 use unikraft::Unikraft;
@@ -21,14 +23,16 @@ use tokio::time::sleep;
 
 enum EvalType {
     Firecracker,
-    Unikraft,
+    FirecrackerSnapshot,
     Process,
+    Unikraft,
 }
 
 impl EvalType {
     fn from_string(s: &str) -> Self {
         match s {
             "firecracker" => EvalType::Firecracker,
+            "firecracker-snapshot" => EvalType::FirecrackerSnapshot,
             "unikraft" => EvalType::Unikraft,
             "process" => EvalType::Process,
             _ => panic!("Invalid eval type"),
@@ -157,6 +161,9 @@ async fn main() {
                 }
                 EvalType::Process => {
                     Box::new(Process::new(&eval.config_location, iteration))
+                }
+                EvalType::FirecrackerSnapshot => {
+                    Box::new(FirecrackerSnapshot::new(&eval.config_location))
                 }
             };
 

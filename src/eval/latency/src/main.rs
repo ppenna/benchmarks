@@ -1,24 +1,18 @@
 mod args;
+mod firecracker;
+mod sandbox;
+
+use sandbox::Sandbox;
 
 use args::Args;
 use client_lib::{build_request, send_request, MAX_REQUEST_SIZE};
-use serde::Deserialize;
-use std::process::{Child, Command, Stdio};
+use firecracker::Firecracker;
 use std::net::TcpStream;
 use std::time::Duration;
 use std::time::Instant;
 use std::sync::Arc;
+use log::{debug, error};
 use tokio::time::sleep;
-
-#[derive(Deserialize)]
-struct Config {
-    firecracker_binary_dir: String,
-    firecracker_socket: String,
-    config_file: String,
-    target_ip: String,
-    port_to_check: u16,
-    data_size: usize,
-}
 
 async fn check_port(ip: &str, port: u16) -> bool {
     let address = format!("{}:{}", ip, port);
@@ -35,96 +29,84 @@ async fn wait_for_port(ip: &str, port: u16) -> bool {
             return false;
         }
     }
-    println!("Port {} is open after {} retries", port, retries);
+    debug!("Port {} is open after {} retries", port, retries);
 
     true
 }
 
-fn start_firecracker_vm(config: &Config) -> Result<Child, Box<dyn std::error::Error>> {
-    let firecracker_args: Vec<String> = vec![
-        format!("{}/firecracker", &config.firecracker_binary_dir.clone()),
-        "--config-file".to_string(),
-        config.config_file.clone(),
-        "--api-sock".to_string(),
-        config.firecracker_socket.clone()
-    ];
-
-    // Print the command we're going to run
-    println!("Starting Firecracker VM with command: {:?}", firecracker_args);
-
-    // Execute the program and send the output to /dev/null
-    let firecracker_process = Command::new(&firecracker_args[0])
-        .args(&firecracker_args[1..])
-        .current_dir(&config.firecracker_binary_dir)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-
-    // Waiting for Firecracker to finish setup (in a real application, you'd likely handle this better)
-    println!("Started Firecracker VM with PID: {}", firecracker_process.id());
-    Ok(firecracker_process)
-}
 
 #[tokio::main]
 async fn main() {
     let args: Args = Args::parse(std::env::args().collect()).unwrap();
-    // Open file
-    let file = std::fs::File::open(args.config()).expect("Failed to open config file");
 
-    // Load configuration from file
-    let config: Config = serde_json::from_reader(file)
-        .expect("Failed to load config file");
+    println!("SYSTEM,OP_TYPE,LATENCY_MICROSECONDS");
 
-    let current_time = Instant::now();
+    for iteration in 0..args.iterations() { 
+        let mut sandbox: Box<dyn Sandbox> = Box::new(Firecracker::new(args.config(), iteration));
 
-    let mut process_info: Child;
-    // Start the Firecracker VM
-    match start_firecracker_vm(&config) {
-        Ok(process) => {
-            let found = wait_for_port(&config.target_ip, config.port_to_check).await;
-            process_info = process;
-            if found {
-                let elapsed_in_micros = current_time.elapsed().as_micros();
-                println!("Firecracker VM is up and running! Took {} microseconds to start", elapsed_in_micros);
-            } else {
-                eprintln!("Failed to start Firecracker VM: Port {} is not open", config.port_to_check);
-                process_info.kill().expect("Failed to kill Firecracker VM");
+
+        let system_name = sandbox.get_name();
+
+        let presetup_time = Instant::now();
+        sandbox.presetup().expect("Failed to presetup Firecracker VM");
+        let elapsed_in_micros = presetup_time.elapsed().as_micros();
+        println!("{},PRESETUP,{}", &system_name, elapsed_in_micros);
+
+        let current_time = Instant::now();
+
+        // Start the Firecracker VM
+        match sandbox.start() {
+            Ok(_) => {
+                let found = wait_for_port(&sandbox.get_target_ip(), sandbox.get_target_port()).await;
+                if found {
+                    let elapsed_in_micros = current_time.elapsed().as_micros();
+                    println!("{},START,{}", &system_name, elapsed_in_micros);
+                } else {
+                    error!("Failed to start Firecracker VM: Port {} is not open", sandbox.get_target_port());
+                    sandbox.kill().expect("Failed to kill Firecracker VM");
+                    sandbox.cleanup().expect("Failed to cleanup Firecracker VM");
+                    std::process::exit(1);
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to start Firecracker VM: {}", e);
+                // exit the program with an error code
                 std::process::exit(1);
             }
         }
-        Err(e) => {
-            eprintln!("Failed to start Firecracker VM: {}", e);
-            // exit the program with an error code
-            std::process::exit(1);
+
+        // Build the request
+        if args.data_size() > MAX_REQUEST_SIZE {
+            panic!("Request size is too large");
         }
-    }
+        let request_data: Vec<u8> = vec![0u8; args.data_size()];
+        let http_request: Arc<Vec<u8>> = Arc::new(build_request(request_data));
 
-    let before_sending_message = Instant::now();
+        // Send the request
+        let address = format!("{}:{}", sandbox.get_target_ip(), sandbox.get_target_port());
+        let latencies = match send_request(address, http_request, args.invocations()).await {
+            Ok(latencies) => {
+                debug!("Requests sents successfully");
+                latencies
+            }
+            Err(e) => {
+                eprintln!("Failed to send request: {}", e);
+                sandbox.kill().expect("Failed to kill Firecracker VM");
+                sandbox.cleanup().expect("Failed to cleanup Firecracker VM");
+                std::process::exit(1);
+            }
+        };
 
-    // Build the request
-    if config.data_size > MAX_REQUEST_SIZE {
-        panic!("Request size is too large");
-    }
-    let request_data: Vec<u8> = vec![0u8; config.data_size];
-    let http_request: Arc<Vec<u8>> = Arc::new(build_request(request_data));
-
-    // Send the request
-    let address = format!("{}:{}", config.target_ip, config.port_to_check);
-    match send_request(address, http_request).await {
-        Ok(_) => {
-            println!("Request sent successfully");
+        println!("{},FIRST_EXECUTION,{}", &system_name, latencies[0]);
+        // Print the latencies
+        for latency in &latencies[1..] {
+            println!("{},EXECUTION,{}", &system_name, latency);
         }
-        Err(e) => {
-            eprintln!("Failed to send request: {}", e);
-            process_info.kill().expect("Failed to kill Firecracker VM");
-            std::process::exit(1);
-        }
+
+        // Kill the Firecracker VM
+        sandbox.kill().expect("Failed to kill Firecracker VM");
+
+        // Cleanup the Firecracker VM
+        sandbox.cleanup().expect("Failed to cleanup Firecracker VM");
     }
-
-    let elapsed_in_micros = before_sending_message.elapsed().as_micros();
-    println!("Took {} microseconds to send the request", elapsed_in_micros);
-
-    // Kill the Firecracker VM
-    process_info.kill().expect("Failed to kill Firecracker VM");
-
 }

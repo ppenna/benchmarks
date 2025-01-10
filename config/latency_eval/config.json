@@ -1,8 +1,7 @@
 {
-  "firecracker_binary_dir": "/home/quique/Src/nanvix-hotos-2025/scripts/firecracker/output", 
-  "firecracker_socket": "/tmp/firecracker1001.socket",
-  "config_file": "/home/quique/Src/nanvix-hotos-2025/scripts/firecracker/output/vm_config.json",
-  "target_ip": "172.16.0.2",
-  "port_to_check": 8080,
-  "data_size": 1024
+  "firecracker_binary_dir": "./scripts/firecracker/output", 
+  "firecracker_socket_prefix": "/tmp/firecracker",
+  "config_file_template": "./scripts/firecracker/output/vm_config.json",
+  "network_setup_file": "./scripts/firecracker/setup_network.sh",
+  "network_cleanup_file": "./scripts/firecracker/clean_network.sh"
 }

@@ -178,12 +178,12 @@ async fn client(
             // Spawn a new asynchronous task.
             let handle: JoinHandle<std::result::Result<(), anyhow::Error>> =
                 tokio::spawn(async move {
-                    match send_request(sockaddr_clone, http_request_clone).await {
+                    match send_request(sockaddr_clone, http_request_clone, 1).await {
                         Ok(elapsed) => {
-                            latencies_clone.lock().await.push(elapsed as u64);
+                            latencies_clone.lock().await.push(elapsed[0] as u64);
                             requests_clone
                                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                            debug!("elapsed: {} ns", elapsed);
+                            debug!("elapsed: {} ns", elapsed[0]);
                             Ok(())
                         },
                         Err(_) => {

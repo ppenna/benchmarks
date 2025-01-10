@@ -6,6 +6,8 @@ edition = "2018"
 [dependencies]
 client_lib = { path = "../client_lib" }
 anyhow = { workspace = true }
+log = { workspace = true }
 serde = { workspace = true, features = ["std", "derive"] }
 serde_json = { workspace = true, features = ["std"] }
 tokio = { workspace = true, features = ["full"] }
+uuid = { workspace = true, features = ["v4"]}

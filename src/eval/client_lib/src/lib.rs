@@ -42,41 +42,32 @@ pub fn build_request(data: Vec<u8>) -> Vec<u8> {
     .to_vec()
 }
 
-pub async fn send_request(sockaddr: String, http_request: Arc<Vec<u8>>) -> Result<u128> {
-
-    let now: Instant = std::time::Instant::now();
+pub async fn send_request(sockaddr: String, http_request: Arc<Vec<u8>>, total_invocations: u32) -> Result<Vec<u128>> {
+    let mut latencies: Vec<u128> = Vec::with_capacity(total_invocations.try_into().unwrap());
     let mut stream: TcpStream = TcpStream::connect(sockaddr).await?;
     debug!("connected to server");
-    stream.write_all(&http_request).await?;
-    let mut response: Vec<u8> = vec![0u8; MAX_RESPONSE_SIZE];
 
     // Parse response.
-    loop {
-        match stream.read(&mut response).await {
-                // Succeeded to read from socket.
-            Ok(n) => {
-                // Check if connection was closed.
-                if n == 0 {
-                    anyhow::bail!("Connection closed by server");
-                }
-                // Try to read the response
-                let reader = tokio::io::BufReader::new(&response[..n] as &[u8]);
-                let mut lines = reader.lines();
-                // Consume all lines.
-                while let Some(line) = lines.next_line().await? {
-                    // Check if are done parsing the response.
-                    if line.is_empty() {
-                        let elapsed: u128 = now.elapsed().as_nanos();
-                        stream.shutdown().await?;
-                        debug!("disconnected from server");
-                        return Ok(elapsed);
-                    }
-                }
-            },
-            // Failed to read from socket.
-            Err(e) => {
-                anyhow::bail!("failed to read from socket: {}", e);
-            },
+    for _ in 0..total_invocations {
+        let now: Instant = std::time::Instant::now();
+        // Send request
+        stream.write_all(&http_request).await?;
+        let mut response: Vec<u8> = vec![0u8; MAX_RESPONSE_SIZE];
+
+        // Receive response
+        let n = stream.read(&mut response).await?;
+        let reader = tokio::io::BufReader::new(&response[..n] as &[u8]);
+        let mut lines = reader.lines();
+        while let Some(line) = lines.next_line().await? {
+            if line.is_empty() {
+                let elapsed: u128 = now.elapsed().as_micros();
+                latencies.push(elapsed);
+                break;
+            }
         }
     }
+
+    stream.shutdown().await?;
+    debug!("disconnected from server");
+    Ok(latencies)
 }

@@ -52,7 +52,7 @@ else
 	$(MAKE_DIRECTORY_COMMAND)
 endif
 
-run-hyperlight-host: $(BINARIES_DIRECTORY)/hyperlight-host-nanvix $(BINARIES_DIRECTORY)/hyperlight-guest-nanvix
+run-hyperlight-host: all-hyperlight-host all-hyperlight-guest 
 ifeq ($(VERBOSE),)
 	@$(HYPERLIGHT_HOST_RUN_COMMAND)
 else

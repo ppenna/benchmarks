@@ -6,6 +6,7 @@
 //==================================================================================================
 
 use ::anyhow::Result;
+use hyperlight_host::func::ReturnType;
 use ::hyperlight_host::{
     func::{
         HostFunction0,
@@ -29,19 +30,32 @@ use ::std::sync::{
 // Structures
 //==================================================================================================
 
-#[derive(Debug, Clone)]
 pub struct Sandbox {
     filepath: String,
+    input_tx: Option<mpsc::Sender<Vec<u8>>>,
+    output_rx: Option<mpsc::Receiver<Vec<u8>>>,
+    sandbox: Option<MultiUseSandbox>,
 }
 
 impl Sandbox {
     pub fn new(filepath: &str) -> Self {
         Self {
             filepath: filepath.to_string(),
+            input_tx: None,
+            output_rx: None,
+            sandbox: None,
         }
     }
 
-    pub fn run(&self, data: Vec<u8>) -> Result<Vec<u8>> {
+    pub fn init(&mut self) -> Result<()> {
+        // Create an uninitialized sandbox with a guest binary
+        let mut sandbox: UninitializedSandbox = UninitializedSandbox::new(
+            hyperlight_host::GuestBinary::FilePath(self.filepath.to_string()),
+            None, // default configuration
+            None, // default run options
+            None, // default host print function
+        )?;
+
         let (input_tx, input_rx) = mpsc::channel::<Vec<u8>>();
         let (output_tx, output_rx) = mpsc::channel::<Vec<u8>>();
 
@@ -62,22 +76,28 @@ impl Sandbox {
         let vmbus_write_host_fn = Arc::new(Mutex::new(vmbus_write));
         let vmbus_read_host_fn = Arc::new(Mutex::new(vmbus_read));
 
-        // Create an uninitialized sandbox with a guest binary
-        let mut sandbox: UninitializedSandbox = UninitializedSandbox::new(
-            hyperlight_host::GuestBinary::FilePath(self.filepath.to_string()),
-            None, // default configuration
-            None, // default run options
-            None, // default host print function
-        )?;
-
         vmbus_read_host_fn.register(&mut sandbox, "VmbusRead")?;
         vmbus_write_host_fn.register(&mut sandbox, "VmbusWrite")?;
 
-        input_tx.send(data).unwrap();
+        self.input_tx = Some(input_tx);
+        self.output_rx = Some(output_rx);
+
+        let multi_use_sandbox: MultiUseSandbox = sandbox.evolve(Noop::default())?;
+
+        self.sandbox = Some(multi_use_sandbox);
+
+        Ok(())
+    }
+
+    pub fn run(&mut self, data: Vec<u8>) -> Result<Vec<u8>> {
+
+
+        self.input_tx.as_mut().unwrap().send(data).unwrap();
 
         // Initialize sandbox to be able to call host functions
-        let _multi_use_sandbox: MultiUseSandbox = sandbox.evolve(Noop::default())?;
-
+        let sandbox = self.sandbox.as_mut().unwrap();
+        let _return_value = sandbox.call_guest_function_by_name("GuestFunction", ReturnType::Void,         Some(Vec::new()))?;
+        let output_rx = self.output_rx.as_mut().unwrap();
         let data = output_rx.recv().unwrap();
 
         Ok(data)

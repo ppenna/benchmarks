@@ -9,10 +9,12 @@ extern crate alloc;
 // Imports
 //==================================================================================================
 
+use alloc::string::ToString;
 use ::alloc::{
     string::String,
     vec::Vec,
 };
+use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result_from_void;
 use ::hyperlight_common::flatbuffer_wrappers::{
     function_call::FunctionCall,
     function_types::{
@@ -21,6 +23,7 @@ use ::hyperlight_common::flatbuffer_wrappers::{
     },
     guest_error::ErrorCode,
 };
+use hyperlight_guest::{guest_function_definition::GuestFunctionDefinition, guest_function_register::register_function};
 use ::hyperlight_guest::{
     error::{
         HyperlightGuestError,
@@ -37,10 +40,35 @@ use ::hyperlight_guest::{
 // Standalone Functions
 //==================================================================================================
 
+fn guest_function(_function_call: &FunctionCall) -> Result<Vec<u8>> {
+    match vmbus_func() {
+        Ok(_) => {
+            Ok(get_flatbuffer_result_from_void())
+        }
+        Err(_e) => {
+            Err(HyperlightGuestError::new(
+                ErrorCode::GuestError,
+                "Error executing function".to_string(),
+            ))
+        }
+    }
+}
+
+fn vmbus_func() -> Result<()> {
+    let bytes: Vec<u8> = vmbus_read()?;
+    let _result: i32 = vmbus_write(bytes)?;
+    Ok(())
+}
+
 #[no_mangle]
 pub extern "C" fn hyperlight_main() {
-    let bytes: Vec<u8> = vmbus_read().unwrap();
-    let _result: i32 = vmvus_write(bytes).unwrap();
+    let function_definition = GuestFunctionDefinition::new(
+        "GuestFunction".to_string(),
+        Vec::new(),
+        ReturnType::Void,
+        guest_function as i64,
+    );
+    register_function(function_definition);
 }
 
 fn vmbus_read() -> Result<Vec<u8>> {
@@ -49,7 +77,7 @@ fn vmbus_read() -> Result<Vec<u8>> {
     Ok(result)
 }
 
-fn vmvus_write(data: Vec<u8>) -> Result<i32> {
+fn vmbus_write(data: Vec<u8>) -> Result<i32> {
     call_host_function(
         "VmbusWrite",
         Some(Vec::from(&[ParameterValue::VecBytes(data)])),

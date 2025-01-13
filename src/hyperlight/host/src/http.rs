@@ -23,6 +23,7 @@ use ::hyper::{
 };
 use ::serde::Deserialize;
 use ::serde_json::Value;
+use std::{collections::VecDeque, sync::{Arc, Mutex}};
 use ::std::{
     future::Future,
     pin::Pin,
@@ -37,13 +38,40 @@ struct MessageJson {
     data: Vec<u8>,
 }
 
-pub struct HttpClient {
-    sandbox: Sandbox,
+pub struct HttpServer {
+    sandbox_file_path: String,
+    ready_sandboxes: Arc<Mutex<VecDeque<Sandbox>>>,
 }
 
-impl HttpClient {
-    pub fn new(sandbox: Sandbox) -> Self {
-        Self { sandbox }
+impl HttpServer {
+    pub fn new(sandbox_file_path: String) -> Self {
+        Self { 
+            sandbox_file_path,
+            ready_sandboxes: Arc::new(Mutex::new(VecDeque::new())),
+        }
+    }
+
+    pub fn add_sandbox(ready_sandboxes: Arc<Mutex<VecDeque<Sandbox>>>, sandbox_path: &str) -> Result<()> {
+        let mut locked_sandboxes = ready_sandboxes.lock().unwrap();
+        match Self::create_sandbox(sandbox_path) {
+            Ok(sandbox) => {
+                locked_sandboxes.push_back(sandbox);
+                Ok(())
+            },
+            Err(e) => Err(e),
+        }
+    }
+
+    fn create_sandbox(sandbox_path: &str) -> Result<Sandbox> {
+        let mut sandbox: Sandbox = Sandbox::new(sandbox_path);
+        match sandbox.init() {
+            Ok(_) => Ok(sandbox),
+            Err(e) => {
+                let reason: String = format!("failed to initialize sandbox ({:?})", e);
+                error!("{}", reason);
+                Err(anyhow::anyhow!(reason))
+            },
+        }
     }
 
     ///
@@ -77,18 +105,20 @@ impl HttpClient {
         internal_server_error
     }
 
-    async fn serve(sandbox: Sandbox, request: MessageJson) -> Result<Vec<u8>> {
+    async fn serve(sandbox: &mut Sandbox, request: MessageJson) -> Result<Vec<u8>> {
         Ok(sandbox.run(request.data).unwrap())
     }
 }
 
-impl Service<Request<Incoming>> for HttpClient {
+impl Service<Request<Incoming>> for HttpServer {
     type Response = Response<Full<Bytes>>;
     type Error = hyper::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn call(&self, request: Request<Incoming>) -> Self::Future {
-        let sandbox = self.sandbox.clone();
+        let sandbox_path_copy = self.sandbox_file_path.clone();
+        let ready_sandboxes = self.ready_sandboxes.clone();
+
         let future = async move {
             let body: Bytes = match request.collect().await {
                 Ok(body) => body.to_bytes(),
@@ -98,6 +128,40 @@ impl Service<Request<Incoming>> for HttpClient {
                     return Ok(Self::internal_server_error());
                 },
             };
+
+            // If the body is empty it is meant to be a pre-creation of a sandbox
+            if body.is_empty() {
+                match Self::add_sandbox(ready_sandboxes, &sandbox_path_copy) {
+                    Ok(_) => {
+                        return Ok(Response::builder()
+                            .status(StatusCode::NO_CONTENT)
+                            .body(Full::new(Bytes::new()))
+                            .unwrap());
+                    },
+                    Err(_) => {
+                        return Ok(Self::internal_server_error());
+                    },
+                }
+            }
+
+
+            // Check if a sandbox is ready to be used
+            let mut sandbox: Sandbox;
+            {
+                // Lock scope
+                let mut locked_sandboxes = ready_sandboxes.lock().unwrap();
+                sandbox = match locked_sandboxes.pop_front() {
+                    Some(sandbox) => sandbox,
+                    None => {
+                        match Self::create_sandbox(&sandbox_path_copy) {
+                            Ok(sandbox) => sandbox,
+                            Err(_) => {
+                                return Ok(Self::internal_server_error());
+                            },
+                        }
+                    },
+                };
+            }
 
             // Deserialize the JSON directly into the struct
             let request: MessageJson = match serde_json::from_slice(body.as_ref()) {
@@ -109,13 +173,20 @@ impl Service<Request<Incoming>> for HttpClient {
                 },
             };
 
-            let bytes: Vec<u8> = match Self::serve(sandbox, request).await {
+            let bytes: Vec<u8> = match Self::serve(&mut sandbox, request).await {
                 Ok(bytes) => bytes,
                 Err(e) => {
                     warn!("failed to serve request ({:?})", e);
                     return Ok(Self::internal_server_error());
                 },
             };
+
+            // Return sandbox to the queue
+            {
+                // Lock scope
+                let mut locked_sandboxes = ready_sandboxes.lock().unwrap();
+                locked_sandboxes.push_back(sandbox);
+            }
 
             let json: Value = serde_json::json!({
                 "response": String::from_utf8_lossy(&bytes).to_string(),

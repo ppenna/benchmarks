@@ -8,6 +8,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 . "$HOME/.cargo/env"     
 rustup target add x86_64-unknown-none
 rustup target add x86_64-unknown-linux-musl
+rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
 
 echo "Installing Unikraft"
 curl -sSfL https://get.kraftkit.sh | sh

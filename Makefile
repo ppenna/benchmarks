@@ -42,8 +42,7 @@ export MAKE_DIRECTORY_COMMAND=mkdir -p $(BINARIES_DIRECTORY)
 export HYPERLIGHT_HOST_RUN_COMMAND=$(BINARIES_DIRECTORY)/hyperlight-host-nanvix -listen $(HTTP_ADDR) -guest $(BINARIES_DIRECTORY)/hyperlight-guest-nanvix
 export CLIENT_RUN_COMMAND=$(BINARIES_DIRECTORY)/client -connect $(HTTP_ADDR) -frequency $(FREQUENCY) -duration $(DURATION)
 
-# Unikraft build is not added to the default build
-all: all-hyperlight-host all-hyperlight-guest all-client all-http-echo all-cold-start
+all: all-hyperlight-host all-hyperlight-guest all-client all-http-echo all-cold-start all-unikraft-server
 
 make-directories:
 ifeq ($(VERBOSE),)

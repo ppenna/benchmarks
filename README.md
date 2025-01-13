@@ -1,5 +1,8 @@
 # Development
 
+## General configuration
+- See [script](./scripts/setup.sh) for general configuration steps.
+
 ## WSL (Ubuntu)
 ### Hyperlight 
 #### Setup
@@ -17,8 +20,8 @@ rustup target add x86_64-unknown-none
 #### Compiling
 ```bash
 echo "Compiling"
-cd hyperlight
-make all
+make all-hyperlight-host
+make all-client
 ```
 
 #### Run
@@ -97,6 +100,7 @@ popd
 ```bash
 ROOT_DIR="<repo root dir>"
 cd ${ROOT_DIR}/scripts/firecracker/output
+cp ${ROOT_DIR}/config/firecracker/vm_config_template.json .
 cp ${ROOT_DIR}/config/firecracker/vm_config.json .
 touch /tmp/firecracker.log
 

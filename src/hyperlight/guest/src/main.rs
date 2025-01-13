@@ -14,7 +14,7 @@ use ::alloc::{
     string::String,
     vec::Vec,
 };
-use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result_from_void;
+use hyperlight_common::flatbuffer_wrappers::{function_types::ParameterType, util::{get_flatbuffer_result_from_vec, get_flatbuffer_result_from_void}};
 use ::hyperlight_common::flatbuffer_wrappers::{
     function_call::FunctionCall,
     function_types::{
@@ -40,7 +40,19 @@ use ::hyperlight_guest::{
 // Standalone Functions
 //==================================================================================================
 
-fn guest_function(_function_call: &FunctionCall) -> Result<Vec<u8>> {
+
+fn direct_echo(function_call: &FunctionCall) -> Result<Vec<u8>> {
+    if let ParameterValue::VecBytes(data) = function_call.parameters.clone().unwrap()[0].clone() {
+        Ok(get_flatbuffer_result_from_vec(&data))
+    } else {
+        Err(HyperlightGuestError::new(
+            ErrorCode::GuestFunctionParameterTypeMismatch,
+            "Invalid parameters passed to get_size_prefixed_buffer".to_string(),
+        ))
+    }
+}
+
+fn vmbus_echo(_function_call: &FunctionCall) -> Result<Vec<u8>> {
     match vmbus_func() {
         Ok(_) => {
             Ok(get_flatbuffer_result_from_void())
@@ -63,12 +75,20 @@ fn vmbus_func() -> Result<()> {
 #[no_mangle]
 pub extern "C" fn hyperlight_main() {
     let function_definition = GuestFunctionDefinition::new(
-        "GuestFunction".to_string(),
+        "VmbusEcho".to_string(),
         Vec::new(),
         ReturnType::Void,
-        guest_function as i64,
+        vmbus_echo as i64,
     );
     register_function(function_definition);
+
+    let direct_echo_function_definition= GuestFunctionDefinition::new(
+        "DirectEcho".to_string(),
+        Vec::from(&[ParameterType::VecBytes]),
+        ReturnType::VecBytes,
+        direct_echo as i64,
+    );
+    register_function(direct_echo_function_definition);
 }
 
 fn vmbus_read() -> Result<Vec<u8>> {

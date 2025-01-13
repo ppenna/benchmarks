@@ -1,7 +1,7 @@
 {
 	"boot-source": {
 		"kernel_image_path": "vmlinux.bin",
-		"boot_args": "quiet loglevel=3 console=ttyS0 reboot=k panic=1 pci=off ip_with_mask={{guest_ip}}/24 route={{tap_ip}}",
+		"boot_args": "quiet loglevel=1 console=ttyS0 reboot=k panic=1 pci=off ip_with_mask={{guest_ip}}/24 route={{tap_ip}}",
 		"initrd_path": null
 	},
 	"drives": [

@@ -2,7 +2,7 @@ use crate::sandbox::Sandbox;
 use anyhow::Result; 
 use log::debug;
 use serde::Deserialize;
-use std::{process::{Child, Command}, str};
+use std::{process::{Child, Command, Stdio}, str};
 use uuid::Uuid;
 use std::fs::File;
 
@@ -76,7 +76,22 @@ impl Sandbox for Unikraft {
 
     fn kill(&mut self) -> Result<()> {
         self.child_process.as_mut().unwrap().kill().expect("Failed to kill Unikraft VM");
+        let _clean_cmd = Command::new("kraft" )
+        .arg("rm")
+        .arg("--all")
+        .stdout(Stdio::null()) 
+        .stderr(Stdio::null())
+        .output()?;
+
         Ok(())
+    }
+
+    fn cleanup(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    fn presetup(&mut self) -> Result<()> {
+       Ok(()) 
     }
 
     fn get_name(&self) -> String {
@@ -91,11 +106,5 @@ impl Sandbox for Unikraft {
         "127.0.0.1".to_string()
     }
 
-    fn cleanup(&mut self) -> Result<()> {
-        Ok(())
-    }
 
-    fn presetup(&mut self) -> Result<()> {
-       Ok(()) 
-    }
 } 

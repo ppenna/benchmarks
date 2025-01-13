@@ -58,7 +58,7 @@ pub async fn main() -> Result<()> {
                         debug!("accepted connection from {:?}", sockaddr);
                         let filepath = args.guest().to_string();
                         let client =
-                            HttpServer::new(filepath);
+                            HttpServer::new(filepath, args.init_sandbox_size());
                         let io: TokioIo<TcpStream> = TokioIo::new(stream);
                         if let Err(e) = http1::Builder::new().serve_connection(io, client).await  {
                             error!("failed to serve connection ({:?})", e);

@@ -60,7 +60,7 @@ impl Sandbox for Process {
         let log_file_out = Self::create_log_file(&self.config.output_dir, &self.id, self.iteration,".out").unwrap();
         let log_file_err = Self::create_log_file(&self.config.output_dir, &self.id, self.iteration, ".err").unwrap();
 
-        let socket_addr = format!("{}{}",&self.config.ip, self.config.port);
+        let socket_addr = format!("{}:{}",&self.config.ip, self.config.port);
 
         debug!("Using socket address {}", socket_addr);
 
@@ -86,6 +86,11 @@ impl Sandbox for Process {
         Ok(())
     }
 
+    fn kill(&mut self) -> Result<()> {
+        self.child_process.as_mut().unwrap().kill().expect("Failed to kill Process Sandbox");
+        Ok(())
+    }
+
     fn get_target_ip(&self) -> String {
         self.config.ip.clone()
     }
@@ -96,10 +101,5 @@ impl Sandbox for Process {
 
     fn get_name(&self) -> String {
         "Process".to_string()
-    }
-
-    fn kill(&mut self) -> Result<()> {
-        self.child_process.as_mut().unwrap().kill().expect("Failed to kill Process Sandbox");
-        Ok(())
     }
 }

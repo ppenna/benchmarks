@@ -6,7 +6,7 @@
 //==================================================================================================
 
 use ::anyhow::Result;
-use hyperlight_host::func::ReturnType;
+use hyperlight_host::func::{ReturnType, ReturnValue};
 use ::hyperlight_host::{
     func::{
         HostFunction0,
@@ -92,14 +92,22 @@ impl Sandbox {
     pub fn run(&mut self, data: Vec<u8>) -> Result<Vec<u8>> {
 
 
-        self.input_tx.as_mut().unwrap().send(data).unwrap();
+        // self.input_tx.as_mut().unwrap().send(data).unwrap();
 
         // Initialize sandbox to be able to call host functions
         let sandbox = self.sandbox.as_mut().unwrap();
-        let _return_value = sandbox.call_guest_function_by_name("GuestFunction", ReturnType::Void,         Some(Vec::new()))?;
-        let output_rx = self.output_rx.as_mut().unwrap();
-        let data = output_rx.recv().unwrap();
-
-        Ok(data)
+        let return_value = sandbox.call_guest_function_by_name(
+            "DirectEcho", 
+            ReturnType::VecBytes, 
+            Some(vec![hyperlight_host::func::ParameterValue::VecBytes(data)]
+        ));
+        // let output_rx = self.output_rx.as_mut().unwrap();
+        // let data = output_rx.recv().unwrap();
+         match return_value.unwrap() {
+            ReturnValue::VecBytes(res_bytes) => {
+                Ok(res_bytes)
+            }
+            _ =>  Err(anyhow::anyhow!("invalid return value")),
+        } 
     }
 }

@@ -44,10 +44,14 @@ pub struct HttpServer {
 }
 
 impl HttpServer {
-    pub fn new(sandbox_file_path: String) -> Self {
+    pub fn new(sandbox_file_path: String, init_num_sandboxes: usize) -> Self {
+        let ready_sandboxes: Arc<Mutex<VecDeque<Sandbox>>> =  Arc::new(Mutex::new(VecDeque::new()));
+        for _ in 0..init_num_sandboxes {
+            Self::add_sandbox(ready_sandboxes.clone(), &sandbox_file_path).unwrap()
+        }
         Self { 
             sandbox_file_path,
-            ready_sandboxes: Arc::new(Mutex::new(VecDeque::new())),
+            ready_sandboxes,
         }
     }
 

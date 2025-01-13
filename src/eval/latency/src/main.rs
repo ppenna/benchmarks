@@ -1,6 +1,8 @@
 mod args;
 mod firecracker;
 mod firecracker_snapshot;
+mod hyperlight;
+mod net_lib;
 mod process;
 mod sandbox;
 mod unikraft;
@@ -8,16 +10,16 @@ mod unikraft;
 use args::Args;
 use firecracker::Firecracker;
 use firecracker_snapshot::FirecrackerSnapshot;
-use sandbox::Sandbox;
+use hyperlight::Hyperlight;
+use net_lib::wait_for_port;
 use process::Process;
+use sandbox::Sandbox;
 use unikraft::Unikraft;
 
 use client_lib::{build_request, send_request, MAX_REQUEST_SIZE};
 use log::{debug, error};
 use serde::Deserialize;
-use std::net::TcpStream;
-use std::time::Duration;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use std::sync::Arc;
 use tokio::time::sleep;
 
@@ -26,6 +28,7 @@ enum EvalType {
     FirecrackerSnapshot,
     Process,
     Unikraft,
+    Hyperlight,
 }
 
 impl EvalType {
@@ -35,6 +38,7 @@ impl EvalType {
             "firecracker-snapshot" => EvalType::FirecrackerSnapshot,
             "unikraft" => EvalType::Unikraft,
             "process" => EvalType::Process,
+            "hyperlight" => EvalType::Hyperlight,
             _ => panic!("Invalid eval type"),
         }
     }
@@ -52,27 +56,6 @@ struct EvalsConfig {
 }
 
 
-async fn check_port(ip: &str, port: u16) -> bool {
-    let address = format!("{}:{}", ip, port);
-    TcpStream::connect_timeout(&address.parse().unwrap(), Duration::from_millis(1)).is_ok() 
-}
-
-async fn wait_for_port(ip: &str, port: u16) -> bool {
-    let max_retries = 10000;
-    let mut retries = 0;
-    while !check_port(ip, port).await {
-        sleep(Duration::from_millis(1)).await;
-        retries += 1;
-        if retries > max_retries {
-            return false;
-        }
-    }
-    debug!("Port {} is open after {} retries", port, retries);
-
-    true
-}
-
-
 async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total_invocations: u32) {
     let system_name = sandbox.get_name();
 
@@ -81,12 +64,15 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
     let elapsed_in_micros = presetup_time.elapsed().as_micros();
     println!("{},PRESETUP,{}", &system_name, elapsed_in_micros);
 
+    // Wait for 2 s 
+    sleep(Duration::from_secs(2)).await;
+
     let current_time = Instant::now();
 
     // Start the VM
     match sandbox.start() {
         Ok(_) => {
-            let found = wait_for_port(&sandbox.get_target_ip(), sandbox.get_target_port()).await;
+            let found = wait_for_port(&sandbox.get_target_ip(), sandbox.get_target_port());
             if found {
                 let elapsed_in_micros = current_time.elapsed().as_micros();
                 println!("{},SETUP_SANDBOX,{}", &system_name, elapsed_in_micros);
@@ -165,12 +151,15 @@ async fn main() {
                 EvalType::FirecrackerSnapshot => {
                     Box::new(FirecrackerSnapshot::new(&eval.config_location))
                 }
+                EvalType:: Hyperlight => {
+                    Box::new(Hyperlight::new(&eval.config_location, iteration))
+                }
             };
 
             process_sandbox(&mut sandbox, args.data_size(), args.invocations()).await;
 
             // Sleep for a bit to allow the VM to cleanup
-            sleep(Duration::from_millis(500)).await;
+            sleep(Duration::from_secs(2)).await;
         }
     }
 }

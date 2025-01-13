@@ -153,6 +153,11 @@ impl Sandbox for Firecracker {
         Ok(())
     }
 
+    fn kill(&mut self) -> Result<()> {
+        self.child_process.as_mut().unwrap().kill().expect("Failed to kill Firecracker VM");
+        Ok(())
+    }
+
     fn get_target_ip(&self) -> String {
         let last_prefix = 2 + 2*self.iteration;
         if last_prefix > 255 {
@@ -167,10 +172,5 @@ impl Sandbox for Firecracker {
 
     fn get_name(&self) -> String {
         "Firecracker".to_string()
-    }
-
-    fn kill(&mut self) -> Result<()> {
-        self.child_process.as_mut().unwrap().kill().expect("Failed to kill Firecracker VM");
-        Ok(())
     }
 }

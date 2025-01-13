@@ -1,8 +1,25 @@
-# Development
-
 ## General configuration
 - See [script](./scripts/setup.sh) for general configuration steps.
 
+# Evaluation 
+## Cold start echo
+```bash
+echo "First update all the files in the directory ./config/latency-eval to point to the right files"
+
+make all-cold-start RELEASE=yes
+./bin/cold-start-latency -config ./config/latency_eval/eval_config.json > /tmp/results.csv 
+```
+
+### Plot
+```bash
+cd ${ROOT_DIR}/scripts/plot
+python3 -m venv plot-cold-start
+source ./plot-cold-start/bin/activate
+python3 -m pip install -r ./requirements.txt
+python3 ./plot_cold_latency.py /tmp/results.csv /tmp/cold_latency.pdf
+```
+
+# Development
 ## WSL (Ubuntu)
 ### Hyperlight 
 #### Setup

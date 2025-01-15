@@ -15,7 +15,7 @@ curl -sSfL https://get.kraftkit.sh | sh
 
 # Configure KVM for unikraft 
 sudo usermod -a -G kvm ${USER}
-sudo chown -v root:kvm /dev/kvm && chmod 660 /dev/kvm
+sudo chown -v root:kvm /dev/kvm && sudo chmod 660 /dev/kvm
 
 # Install docker
 sudo apt-get update

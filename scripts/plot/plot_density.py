@@ -25,6 +25,9 @@ def plot_density(csv_file: str, save_path_directory: str = None):
     df = df.sort_values('SYSTEM')
     df.reset_index(drop=True, inplace=True)
 
+    # Overwrite Unikraft to be "Unikraft\n+ QEMU"
+    df['SYSTEM'] = df['SYSTEM'].replace('Unikraft', 'Unikraft\n+ QEMU')
+
     # Print the average memory usage per system
     for row in df.iterrows():
         print(f"Average memory usage for {row[1]['SYSTEM']}: { (row[1]['INITIAL_MEM'] - row[1]['FINAL_MEM']) / row[1]['MAX_INSTANCES'] } MB")

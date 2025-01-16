@@ -175,5 +175,5 @@ popd
 FC_SOCKET="/tmp/firecracker-snapshot.socket"
 SNAPSHOT_PATH="/tmp/snapshot_file"
 MEMFILE_PATH="/tmp/mem_file"
-${ROOT_FILE}/scripts/firecracker/create_snapshot.sh ${FC_SOCKET} ${SNAPSHOT_PATH} ${MEMFILE_PATH}
+${ROOT_DIR}/scripts/firecracker/create_snapshot.sh ${FC_SOCKET} ${SNAPSHOT_PATH} ${MEMFILE_PATH}
 ```

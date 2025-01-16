@@ -214,7 +214,7 @@ clean-cold-start:
 #===================================================================================================
 # Build Rules for "Unikraft server" Project
 #===================================================================================================
-export UNIKRAFT_SERVER_BUILD_COMMAND=KRAFTKIT_TARGET=unikraft-rust-http-echo $(CARGO) +nightly build -Z build-std=std,panic_abort --target x86_64-unikraft-linux-musl -p unikraft-rust-http-echo
+export UNIKRAFT_SERVER_BUILD_COMMAND=KRAFTKIT_TARGET=unikraft-rust-http-echo $(CARGO) +nightly build -Z build-std=std,panic_abort --release --target x86_64-unikraft-linux-musl -p unikraft-rust-http-echo
 
 all-unikraft-server:
 ifeq ($(VERBOSE),)
@@ -224,7 +224,7 @@ else
 endif
 
 clean-unikraft-server:
-	$(CARGO) +nightly clean --target x86_64-unikraft-linux-musl -p unikraft-rust-http-echo
+	$(CARGO) +nightly clean --release --target x86_64-unikraft-linux-musl -p unikraft-rust-http-echo
 	rm -rf .unikraft
 	rm -f .config.unikraft-rust-http-echo_qemu-x86_64
 

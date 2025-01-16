@@ -42,7 +42,7 @@ export MAKE_DIRECTORY_COMMAND=mkdir -p $(BINARIES_DIRECTORY)
 export HYPERLIGHT_HOST_RUN_COMMAND=$(BINARIES_DIRECTORY)/hyperlight-host-nanvix -listen $(HTTP_ADDR) -guest $(BINARIES_DIRECTORY)/hyperlight-guest-nanvix
 export CLIENT_RUN_COMMAND=$(BINARIES_DIRECTORY)/client -connect $(HTTP_ADDR) -frequency $(FREQUENCY) -duration $(DURATION)
 
-all: all-hyperlight-host all-hyperlight-guest all-client all-http-echo all-cold-start all-unikraft-server
+all: all-hyperlight-host all-hyperlight-guest all-client all-http-echo all-cold-start all-unikraft-server all-density
 
 make-directories:
 ifeq ($(VERBOSE),)
@@ -227,3 +227,32 @@ clean-unikraft-server:
 	$(CARGO) +nightly clean --target x86_64-unikraft-linux-musl -p unikraft-rust-http-echo
 	rm -rf .unikraft
 	rm -f .config.unikraft-rust-http-echo_qemu-x86_64
+
+#===================================================================================================
+# Build Rules for "Density" Project
+#===================================================================================================
+
+export DENSITY_BUILD_COMMAND=$(CARGO) build $(CARGO_FLAGS) -p density 
+export DENSITY_CHECK_COMMAND=$(CARGO) check $(CARGO_FLAGS) -p density --message-format=json
+ifeq ($(RELEASE),)
+export DENSITY_TARGET_DIRECTORY=target/debug
+else
+export DENSITY_TARGET_DIRECTORY=target/release
+endif
+
+all-density: make-directories
+ifeq ($(VERBOSE),)
+	@$(DENSITY_BUILD_COMMAND) --quiet
+	@cp $(DENSITY_TARGET_DIRECTORY)/density $(BINARIES_DIRECTORY)
+else
+	$(DENSITY_BUILD_COMMAND)
+	cp $(DENSITY_TARGET_DIRECTORY)/density $(BINARIES_DIRECTORY)
+endif
+
+check-density:
+	$(CARGO) check $(CARGO_FLAGS) --message-format=json -p density 
+
+clean-density:
+	$(CARGO) clean -p density 
+	rm -f $(BINARIES_DIRECTORY)/density
+

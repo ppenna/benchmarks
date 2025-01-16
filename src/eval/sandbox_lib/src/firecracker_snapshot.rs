@@ -135,7 +135,7 @@ impl Sandbox for FirecrackerSnapshot {
         let tap_device = "tap0";
         let execution_setup= Command::new("sh")
             .arg("-c")
-            .arg(format!("{} {} {}", &self.config.network_setup_file, tap_device, &self.get_tap_ip()))
+            .arg(format!("{} {} {} {}", &self.config.network_setup_file, tap_device, &self.get_tap_ip(), &self.get_target_ip()))
             .output()
             .expect("Failed to execute network setup script");
         debug!("Network setup script executed with output: {} and error: {}", str::from_utf8(&execution_setup.stdout)?, str::from_utf8(&execution_setup.stderr)?);
@@ -175,6 +175,7 @@ impl Sandbox for FirecrackerSnapshot {
         // Run the command in self.config.network_setup_file
         let execution_cleanup= Command::new(&self.config.network_cleanup_file)
             .arg("tap0")
+            .arg(&self.get_target_ip())
             .output().expect("Failed to execute network cleanup script");
         debug!("Network cleanup script executed with output: {} and error {}", str::from_utf8(&execution_cleanup.stdout)?, str::from_utf8(&execution_cleanup.stderr)?); 
         Ok(())

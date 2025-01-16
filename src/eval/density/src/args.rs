@@ -13,9 +13,8 @@ use ::anyhow::Result;
 
 pub struct Args {
     config: String,
-    data_size: usize,
-    invocations: u32,
-    iterations: usize,
+    // This defines the minimum memory limit that the evaluation will allow the system to go, before stopping for each sandbox
+    memory_limit: u64,
 }
 
 //==================================================================================================
@@ -25,15 +24,11 @@ pub struct Args {
 impl Args {
     const OPT_HELP: &'static str = "-help";
     const OPT_CONFIG_JSON: &'static str = "-config";
-    const OPT_DATA_SIZE : &'static str = "-data_size";
-    const OPT_INVOCATIONS: &'static str = "-invocations";
-    const OPT_ITERATIONS: &'static str = "-iterations";
+    const OPT_MEMORY_LIMIT: &'static str = "-memory-limit";
 
     pub fn parse(args: Vec<String>) -> Result<Self> {
         let mut config_json: String = String::new();
-        let mut data_size: usize = 1024;
-        let mut invocations: u32 = 1000;
-        let mut iterations: usize = 10;
+        let mut memory_limit: u64 = 512;
 
         let mut i: usize = 1;
         while i < args.len() {
@@ -46,17 +41,9 @@ impl Args {
                     i += 1;
                     config_json = args[i].clone();
                 },
-                Self::OPT_DATA_SIZE => {
+                Self::OPT_MEMORY_LIMIT => {
                     i += 1;
-                    data_size = args[i].parse::<usize>().unwrap();
-                }
-                Self::OPT_INVOCATIONS => {
-                    i += 1;
-                    invocations = args[i].parse::<u32>().unwrap();
-                }
-                Self::OPT_ITERATIONS => {
-                    i += 1;
-                    iterations = args[i].parse::<usize>().unwrap();
+                    memory_limit = args[i].parse::<u64>().unwrap();
                 }
                 _ => {
                     return Err(anyhow::anyhow!("invalid argument"));
@@ -68,20 +55,16 @@ impl Args {
 
         Ok(Self {
             config: config_json,
-            data_size,
-            invocations,
-            iterations
+            memory_limit,
         })
     }
 
     pub fn usage(program_name: &str) {
         println!(
-            "Usage: {} {} <config.json> [{} <data_size> {} <invocations> {} <iterations> ]",
+            "Usage: {} {} <config.json> {} [memory_limit_in_mb]",
             program_name,
             Self::OPT_CONFIG_JSON,
-            Self::OPT_DATA_SIZE,
-            Self::OPT_INVOCATIONS,
-            Self::OPT_ITERATIONS
+            Self::OPT_MEMORY_LIMIT,
         );
     }
 
@@ -89,15 +72,7 @@ impl Args {
         &self.config
     }
 
-    pub fn data_size(&self) -> usize {
-        self.data_size
-    }
-
-    pub fn invocations(&self) -> u32 {
-        self.invocations
-    }
-
-    pub fn iterations(&self) -> usize {
-        self.iterations
+    pub fn memory_limit(&self) -> u64 {
+        self.memory_limit
     }
 }

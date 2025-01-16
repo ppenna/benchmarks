@@ -1,0 +1,6 @@
+{    
+    "ip": "127.0.0.1",
+    "port": 8080,
+    "binary_path": "/home/quique/src/nanvix-hotos-2025/bin/rust-http-echo",
+    "output_dir": "/tmp"
+}

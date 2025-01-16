@@ -1,14 +1,15 @@
+# Copyright(c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 [package]
-name = "cold-start-latency"
+name = "sandbox_lib"
 version = "0.1.0"
-edition = "2018"
+edition = "2024"
 
 [dependencies]
 client_lib = { path = "../client_lib" }
-sandbox_lib = { path = "../sandbox_lib" }
 anyhow = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true, features = ["std", "derive"] }
 serde_json = { workspace = true, features = ["std"] }
-tokio = { workspace = true, features = ["full"] }
 uuid = { workspace = true, features = ["v4"]}

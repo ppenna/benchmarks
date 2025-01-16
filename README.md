@@ -10,6 +10,27 @@ make all-cold-start RELEASE=yes
 ./bin/cold-start-latency -config ./config/latency_eval/eval_config.json > /tmp/results.csv 
 ```
 
+## Density echo
+```bash
+echo "First update all the files in the directory ./config/density-eval to point to the right files"
+
+make all-density RELEASE=yes
+
+# Setup networking
+# Enable ip forwarding
+sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+sudo nft add table firecracker
+sudo nft 'add chain firecracker postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+sudo nft 'add chain firecracker filter { type filter hook forward priority filter; policy accept; }'
+
+# Memory limit defines how much memory will be left in the system before stopping the creation of more instances
+./bin/density -config ./config/density_eval/eval_config.json -memory-limit 16384 
+
+sudo nft delete rule firecracker postrouting handle 1
+sudo nft delete rule firecracker filter handle 2
+sudo nft delete table firecracker
+```
+
 ### Plot
 ```bash
 cd ${ROOT_DIR}/scripts/plot

@@ -8,6 +8,7 @@ members = [
     "src/hyperlight/host", 
     "src/rust-http-echo",
     "src/eval/latency",
+    "src/eval/density",
     "src/unikraft", 
     "src/http-library",
 ]

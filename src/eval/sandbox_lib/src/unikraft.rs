@@ -20,18 +20,20 @@ pub struct Unikraft {
     id: String,
     config: UnikraftConfig,
     child_process: Option<Child>,
-    iteration: u16,
+    iteration: usize,
 }
 
 impl Unikraft {
-    pub fn new(config_path: &str, iteration: u16) -> Self {
+    pub fn new(config_path: &str, iteration: usize) -> Self {
         // Open file
         let file = std::fs::File::open(config_path).expect("Failed to open config file");
-        let config: UnikraftConfig = serde_json::from_reader(file)
+        let mut config: UnikraftConfig = serde_json::from_reader(file)
             .expect("Failed to load config file");
 
-        let id = Uuid::new_v4().to_string();
+        // Update the host ports based on the iteration
+        config.host_port += iteration as u16;
 
+        let id = Uuid::new_v4().to_string();
 
         Unikraft {
             id,
@@ -41,7 +43,7 @@ impl Unikraft {
         }
     }
 
-    fn create_log_file(output_dir: &str, id: &str, iteration: u16, suffix: &str) -> Result<File> {
+    fn create_log_file(output_dir: &str, id: &str, iteration: usize, suffix: &str) -> Result<File> {
         let log_file = format!("{}/unikraft{}-{}{}", output_dir, id, iteration, suffix);
         let log = File::create(log_file).expect("failed to open log");
         Ok(log)

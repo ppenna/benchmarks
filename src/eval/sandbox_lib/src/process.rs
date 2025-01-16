@@ -19,18 +19,20 @@ pub struct Process {
     id: String,
     config: ProcessConfig,
     child_process: Option<Child>,
-    iteration: u16,
+    iteration: usize,
 }
 
 impl Process {
-    pub fn new(config_path: &str, iteration: u16) -> Self {
+    pub fn new(config_path: &str, iteration: usize) -> Self {
         // Open file
         let file = std::fs::File::open(config_path).expect("Failed to open config file");
-        let config: ProcessConfig = serde_json::from_reader(file)
+        let mut config: ProcessConfig = serde_json::from_reader(file)
             .expect("Failed to load config file");
 
-        let id = Uuid::new_v4().to_string();
+        // Update the port based on the iteration
+        config.port += iteration as u16;
 
+        let id = Uuid::new_v4().to_string();
 
         Process {
             id,
@@ -40,7 +42,7 @@ impl Process {
         }
     }
 
-    fn create_log_file(process_output_dir: &str, id: &str, iteration: u16, suffix: &str) -> Result<File> {
+    fn create_log_file(process_output_dir: &str, id: &str, iteration: usize, suffix: &str) -> Result<File> {
         let log_file = format!("{}/process{}-{}{}", process_output_dir, id, iteration, suffix);
         let log = File::create(log_file).expect("failed to open log");
         Ok(log)

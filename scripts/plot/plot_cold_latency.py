@@ -50,6 +50,10 @@ def plot_cold_start_latency(csv_file_path: str, save_path_directory: str = None)
 
     # Create a DataFrame from the new data
     df = pd.DataFrame(new_data[1:], columns=new_data[0])
+    # Write down the average per system
+    df = df.groupby('TYPE').mean().reset_index() 
+    print(df)
+
     # Sort the  df by TYPE by the order: Unikraft, Firecracker, Fireckare-Snapshot, Hyperlight, Process
     order = ['Unikraft', 'Firecracker', 'Firecracker\nSnapshot', 'Hyperlight', 'Process']
     df['TYPE'] = pd.Categorical(df['TYPE'], categories=order, ordered=True)
@@ -174,6 +178,6 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("Usage: python plot_cold_latency.py <csv_file> [save_path_directory]")
     else:
-        # original_plot_latency(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
-        plot_cold_start_latency(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
-        plot_warm_start_latency(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
+        original_plot_latency(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
+        # plot_cold_start_latency(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
+        # plot_warm_start_latency(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)

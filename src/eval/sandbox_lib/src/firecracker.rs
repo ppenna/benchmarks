@@ -2,7 +2,7 @@ use crate::sandbox::Sandbox;
 use anyhow::Result; 
 use log::debug;
 use serde::Deserialize;
-use std::{io::{Read, Write}, process::{Child, Command, Stdio}, str};
+use std::{fs::File, io::{Read, Write}, process::{Child, Command}, str};
 use uuid::Uuid;
 
 
@@ -19,13 +19,13 @@ pub struct Firecracker {
     id: String,
     config: FirecrackerConfig,
     child_process: Option<Child>,
-    iteration: u16,
+    iteration: usize,
     log_location: String,
     vm_config_location: String,
 }
 
 impl Firecracker {
-    pub fn new(config_path: &str, iteration: u16) -> Self {
+    pub fn new(config_path: &str, iteration: usize) -> Self {
         // Open file
         let file = std::fs::File::open(config_path).expect("Failed to open config file");
         let config: FirecrackerConfig = serde_json::from_reader(file)
@@ -48,20 +48,25 @@ impl Firecracker {
         "172.16.0.1".to_string()
     }
 
-    pub fn get_tap_ip(&self) -> String {
-        let last_prefix = 1 + 2*self.iteration;
-        if last_prefix > 255 {
+    fn get_prefixes(&self, offset: usize) -> (u8, u8) {
+        if offset >= 256 * 256 {
             panic!("Too many iterations");
         }
-        format!("172.16.0.{}", last_prefix)
+        let last_prefix = offset % 256;
+        let second_prefix = last_prefix / 256;
+        (second_prefix as u8, last_prefix as u8)
+    }
+
+    pub fn get_tap_ip(&self) -> String {
+        let ip_offset = 1 + 2*self.iteration;
+        let (second_to_last_prefix, last_prefix) = self.get_prefixes(ip_offset);
+        format!("172.16.{}.{}", second_to_last_prefix, last_prefix)
     }
 
     pub fn get_mac_address(&self) -> String {
-        let last_prefix = 2 + 2*self.iteration;
-        if last_prefix > 255 {
-            panic!("Too many iterations");
-        }
-        format!("06:00:AC:10:00:{:02x}", last_prefix)
+        let offset= 2 + 2 * self.iteration;
+       let (second_to_last_prefix, last_prefix) = self.get_prefixes(offset);
+        format!("06:00:AC:10:{:02x}:{:02x}",second_to_last_prefix, last_prefix)
     }
 
     fn create_log_file(firecracker_binary_dir: &str, id: &str) -> Result<String> {
@@ -72,6 +77,12 @@ impl Firecracker {
             .expect("Failed to create log file");
         debug!("Log file created with output: {:?}", execution_log);
         Ok(log_file)
+    }
+
+    fn create_firecracker_process_log(&self, suffix: &str) -> Result<File> {
+        let log_file = format!("/tmp/firecracker_{}_{}.{}", self.id, self.iteration, suffix);
+        let log = File::create(log_file).expect("failed to open log");
+        Ok(log)
     }
 
     fn create_vm_config(&mut self) -> Result<()> {
@@ -85,7 +96,7 @@ impl Firecracker {
         // Rewrite the template file with the correct values for {{guest_ip}}, {{tap_ip}}, {{tap_id}}, {{mac_address}}, and {{firecracker_log_location}}
         let result = template
             .replace("{{guest_ip}}", &self.get_target_ip())
-            .replace("{{tap_ip}}", &self.get_gateway_ip())
+            .replace("{{tap_ip}}", &self.get_tap_ip())
             .replace("{{tap_id}}", &format!("tap{}", self.iteration))
             .replace("{{mac_address}}", &self.get_mac_address())
             .replace("{{firecracker_log_location}}", &self.log_location);
@@ -107,7 +118,7 @@ impl Sandbox for Firecracker {
         let tap_device = format!("tap{}", self.iteration);
         let execution_setup= Command::new("sh")
             .arg("-c")
-            .arg(format!("{} {} {}", &self.config.network_setup_file, &tap_device, &self.get_tap_ip()))
+            .arg(format!("{} {} {} {}", &self.config.network_setup_file, &tap_device, &self.get_tap_ip(), &self.get_target_ip()))
             .output()
             .expect("Failed to execute network setup script");
         debug!("Network setup script executed with output: {} and error: {}", str::from_utf8(&execution_setup.stdout)?, str::from_utf8(&execution_setup.stderr)?);
@@ -118,6 +129,7 @@ impl Sandbox for Firecracker {
         // Run the command in self.config.network_setup_file
         let execution_cleanup= Command::new(&self.config.network_cleanup_file)
             .arg(format!("tap{}", self.iteration))
+            .arg(&self.get_target_ip())
             .output().expect("Failed to execute network cleanup script");
         debug!("Network cleanup script executed with output: {} and error {}", str::from_utf8(&execution_cleanup.stdout)?, str::from_utf8(&execution_cleanup.stderr)?); 
         Ok(())
@@ -127,6 +139,9 @@ impl Sandbox for Firecracker {
         let socket_addr = format!("{}{}.socket",&self.config.firecracker_socket_prefix, self.id);
 
         debug!("Using socket address {}", socket_addr);
+
+        let output_file = self.create_firecracker_process_log("out")?;
+        let error_file = self.create_firecracker_process_log("err")?;
 
         let firecracker_args: Vec<String> = vec![
             format!("{}/firecracker", self.config.firecracker_binary_dir.clone()),
@@ -143,8 +158,8 @@ impl Sandbox for Firecracker {
         let firecracker_process = Command::new(&firecracker_args[0])
             .args(&firecracker_args[1..])
             .current_dir(&self.config.firecracker_binary_dir)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stdout(output_file)
+            .stderr(error_file)
             .spawn()?;
 
         // Waiting for Firecracker to finish setup (in a real application, you'd likely handle this better)
@@ -159,11 +174,9 @@ impl Sandbox for Firecracker {
     }
 
     fn get_target_ip(&self) -> String {
-        let last_prefix = 2 + 2*self.iteration;
-        if last_prefix > 255 {
-            panic!("Too many iterations");
-        }
-        format!("172.16.0.{}", last_prefix)
+        let ip_offset= 2 + 2*self.iteration;
+        let (second_to_last_prefix, last_prefix) = self.get_prefixes(ip_offset);
+        format!("172.16.{}.{}", second_to_last_prefix, last_prefix)
     }
 
     fn get_target_port(&self) -> u16 {

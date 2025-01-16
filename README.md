@@ -16,6 +16,9 @@ sudo nft 'add chain firecracker filter { type filter hook forward priority filte
 sudo nft delete rule firecracker postrouting handle 1
 sudo nft delete rule firecracker filter handle 2
 sudo nft delete table firecracker
+
+# Plot cold start
+python3 ./scripts/plot/plot_cold_latency.py ./scripts/plot/final_cold_start_latency.csv /tmp/
 ```
 
 ## Density echo
@@ -37,6 +40,9 @@ sudo nft 'add chain firecracker filter { type filter hook forward priority filte
 sudo nft delete rule firecracker postrouting handle 1
 sudo nft delete rule firecracker filter handle 2
 sudo nft delete table firecracker
+
+# Plot density
+python3 ./scripts/plot/plot_density.py ./scripts/plot/density.csv /tmp
 ```
 
 ### Plot

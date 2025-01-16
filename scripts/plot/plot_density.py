@@ -6,6 +6,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 from typing import List
+import matplotlib.ticker as ticker
 
 
 
@@ -35,6 +36,12 @@ def plot_density(csv_file: str, save_path_directory: str = None):
     plt.xlabel('')
     plt.ylabel('Max Number of Instances')
     plt.grid(axis='y', linestyle='--', linewidth=0.7)
+    # Set y-axis to be in the range [1, 10000]
+    plt.ylim(10, 10000)
+    # log scale y axis
+    plt.yscale('log')
+    # Set the y-axis ticks to be powers of 10
+    plt.yticks([10**1, 10**2, 10**3, 10**4, 10**5], labels=['10', '100', '1000', '10⁴', '10⁵'])
 
     # Make all the bars the same color: blue
     # Make all the bars have the same color as the first bar

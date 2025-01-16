@@ -74,7 +74,7 @@ pub async fn send_request(sockaddr: String, http_request: Arc<Vec<u8>>, total_in
             }
         }
         // Sleep for 2 milliseconds
-        tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        tokio::time::sleep(std::time::Duration::from_micros(250)).await;
     }
 
     debug!("disconnected from server");

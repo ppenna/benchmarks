@@ -48,11 +48,11 @@ pub fn build_empty_request() -> Vec<u8> {
 
 pub async fn send_request(sockaddr: String, http_request: Arc<Vec<u8>>, total_invocations: u32) -> Result<Vec<u128>> {
     let mut latencies: Vec<u128> = Vec::with_capacity(total_invocations.try_into().unwrap());
-    let mut stream: tokio::net::TcpStream = tokio::net::TcpStream::connect(sockaddr).await?;
     debug!("connected to server");
 
     // Parse response.
     for _ in 0..total_invocations {
+        let mut stream: tokio::net::TcpStream = tokio::net::TcpStream::connect(&sockaddr).await?;
         let now: Instant = std::time::Instant::now();
         // Send request
         stream.write_all(&http_request).await?;
@@ -66,12 +66,12 @@ pub async fn send_request(sockaddr: String, http_request: Arc<Vec<u8>>, total_in
             if line.is_empty() {
                 let elapsed: u128 = now.elapsed().as_micros();
                 latencies.push(elapsed);
+                stream.shutdown().await?;
                 break;
             }
         }
     }
 
-    stream.shutdown().await?;
     debug!("disconnected from server");
     Ok(latencies)
 }

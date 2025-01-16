@@ -1,0 +1,21 @@
+# Copyright(c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+[package]
+authors = ["Microsoft Corporation"]
+name = "hyperlight-host-nanvix"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+flexi_logger = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true, features = ["std", "derive"] }
+serde_json = { workspace = true, features = ["std"] }
+hyperlight-host = { workspace = true }
+hyperlight-common = { workspace = true }
+hyper = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
+http-body-util = { workspace = true }
+hyper-util = { workspace = true, features = ["full"] }

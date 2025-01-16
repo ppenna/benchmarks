@@ -1,0 +1,24 @@
+{
+    "evals": [
+        {
+            "type_of_eval": "process",
+            "config_location": "/home/quique/Src/nanvix-hotos-2025/config/latency_eval/process_config.json"
+        },
+        {
+            "type_of_eval": "unikraft",
+            "config_location": "/home/quique/Src/nanvix-hotos-2025/config/latency_eval/unikraft_config.json"
+        },
+        {
+            "type_of_eval": "hyperlight",
+            "config_location": "/home/quique/Src/nanvix-hotos-2025/config/latency_eval/hyperlight_config.json"
+        },
+        {
+            "type_of_eval": "firecracker-snapshot",
+            "config_location": "/home/quique/Src/nanvix-hotos-2025/config/latency_eval/firecracker_snapshot_config.json"
+        },
+        {
+            "type_of_eval": "firecracker",
+            "config_location": "/home/quique/Src/nanvix-hotos-2025/config/latency_eval/firecracker_config.json"
+        }
+    ]
+}

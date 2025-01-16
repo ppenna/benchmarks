@@ -1,0 +1,16 @@
+# Copyright(c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+[package]
+name = "http-library"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+serde = { workspace = true, features = ["std", "derive"] }
+serde_json = { workspace = true, features = ["std"] }
+hyper = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
+http-body-util = { workspace = true }
+log = { workspace = true }

@@ -1,5 +1,60 @@
-# Development
+## General configuration
+- See [script](./scripts/setup.sh) for general configuration steps.
 
+# Evaluation 
+## Cold start echo
+```bash
+echo "First update all the files in the directory ./config/latency-eval to point to the right files"
+
+make all-cold-start RELEASE=yes
+sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+sudo nft add table firecracker
+sudo nft 'add chain firecracker postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+sudo nft 'add chain firecracker filter { type filter hook forward priority filter; policy accept; }'
+./bin/cold-start-latency -config ./config/latency_eval/eval_config.json > /tmp/results.csv 
+
+sudo nft delete rule firecracker postrouting handle 1
+sudo nft delete rule firecracker filter handle 2
+sudo nft delete table firecracker
+
+# Plot cold start
+python3 ./scripts/plot/plot_cold_latency.py ./scripts/plot/final_cold_start_latency.csv /tmp/
+```
+
+## Density echo
+```bash
+echo "First update all the files in the directory ./config/density-eval to point to the right files"
+
+make all-density RELEASE=yes
+
+# Setup networking
+# Enable ip forwarding
+sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+sudo nft add table firecracker
+sudo nft 'add chain firecracker postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+sudo nft 'add chain firecracker filter { type filter hook forward priority filter; policy accept; }'
+
+# Memory limit defines how much memory will be left in the system before stopping the creation of more instances
+./bin/density -config ./config/density_eval/eval_config.json -memory-limit 1024 
+
+sudo nft delete rule firecracker postrouting handle 1
+sudo nft delete rule firecracker filter handle 2
+sudo nft delete table firecracker
+
+# Plot density
+python3 ./scripts/plot/plot_density.py ./scripts/plot/density.csv /tmp
+```
+
+### Plot
+```bash
+cd ${ROOT_DIR}/scripts/plot
+python3 -m venv plot-cold-start
+source ./plot-cold-start/bin/activate
+python3 -m pip install -r ./requirements.txt
+python3 ./plot_cold_latency.py /tmp/results.csv /tmp/cold_latency.pdf
+```
+
+# Development
 ## WSL (Ubuntu)
 ### Hyperlight 
 #### Setup
@@ -17,15 +72,14 @@ rustup target add x86_64-unknown-none
 #### Compiling
 ```bash
 echo "Compiling"
-cd hyperlight
-make all
+make all-hyperlight-host
+make all-client
 ```
 
 #### Run
 ```bash
 # To run the host
-cd hyperlight
-make run-host
+make run-hyperlight-host
 
 # To run the client
 cd hyperlight
@@ -43,19 +97,19 @@ echo 'source ${HOME}/.zsh_kraft_completion;' >> ${HOME}/.zshrc;
 
 #### Compile
 ```bash
-cd unikraft
-KRAFTKIT_TARGET=rust-http-echo cargo +nightly build -Z bu
-ild-std=std,panic_abort --target x86_64-unikraft-linux-musl
+cd ${ROOT_DIR} 
+# Suggestion: always run make clean-unikraft-server before, as unikraft compilation has issues sometimes
+make all-unikraft-server
 ```
 
 ### Run
 ```bash
 # To run the server
-cd unikraft
+cd ${ROOT_DIR} 
 kraft run --rm --plat qemu --arch x86_64 -p 8080:8080 .
 
 # To test the server 
-curl localhost:8080
+curl -i -X POST -H "Content-Type: application/json" -d '{"data": [1,2]}' 127.0.0.1:8080
 
 # To run hyperlight client
 cd hyperlight
@@ -72,10 +126,10 @@ make run-client
 rustup target add x86_64-unknown-linux-musl
 
 # To create the rootfs run:
-cd firecracker
+cd scripts/firecracker
 ./create_rootfs.sh
 
-mkdir output
+mkdir -p output
 pushd output
 ARCH="$(uname -m)"
 
@@ -96,16 +150,44 @@ popd
 
 ### Run
 ```bash
-cd firecracker
+ROOT_DIR="<repo root dir>"
+cd ${ROOT_DIR}/scripts/firecracker/output
+cp ${ROOT_DIR}/config/firecracker/vm_config_template.json .
+cp ${ROOT_DIR}/config/firecracker/vm_config.json .
+touch /tmp/firecracker.log
+
 # Configure network
-./setup_network.sh
+${ROOT_DIR}/scripts/firecracker/setup_network.sh
 # Run server
-sudo ./output/firecracker --api-sock /tmp/firecracker39.socket --config-file ./vm_config.json
+FC_SOCKET="/tmp/firecracker.socket"
+${ROOT_DIR}/scripts/firecracker/output/firecracker --api-sock ${FC_SOCKET} --config-file ${ROOT_DIR}/scripts/firecracker/output/vm_config.json
 
 # To test the server 
 curl -i -X POST -H "Content-Type: application/json" -d '{"data": [1,2]}' 172.16.0.2:8080
 
 # To run hyperlight client
-cd hyperlight
+cd ${ROOT_DIR}
 make run-client 
+```
+
+### Eval
+```bash
+ROOT_DIR="<repo root dir>"
+mkdir -p ${ROOT_DIR}/scripts/firecracker/output
+touch /tmp/firecracker.log
+cp ${ROOT_DIR}/config/firecracker/vm_config.json ${ROOT_DIR}/scripts/firecracker/output/vm_config.json.
+
+pushd $ROOT_DIR
+make all-cold-start
+./bin/cold-start-latency -config ./config/latency_eval/config.json
+popd
+```
+
+### Create a snapshot
+```bash
+# First, start the VM as shown in the Run section for Firecracker
+FC_SOCKET="/tmp/firecracker-snapshot.socket"
+SNAPSHOT_PATH="/tmp/snapshot_file"
+MEMFILE_PATH="/tmp/mem_file"
+${ROOT_DIR}/scripts/firecracker/create_snapshot.sh ${FC_SOCKET} ${SNAPSHOT_PATH} ${MEMFILE_PATH}
 ```

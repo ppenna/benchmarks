@@ -1,0 +1,8 @@
+{
+    "evals": [
+        {
+            "type_of_eval": "firecracker",
+            "config_location": "/home/quique/src/nanvix-hotos-2025/config/density_eval/firecracker_config.json"
+        }
+    ]
+}

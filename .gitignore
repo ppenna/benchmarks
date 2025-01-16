@@ -18,4 +18,6 @@ target/
 .config*
 
 # Firecracker
-firecracker/output
+scripts/firecracker/output
+scripts/firecracker/vm_config.json
+firecracker.log

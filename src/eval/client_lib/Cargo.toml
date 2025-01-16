@@ -1,0 +1,15 @@
+# Copyright(c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+[package]
+name = "client_lib"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+log = { workspace = true }
+flexi_logger = { workspace = true }
+serde = { workspace = true, features = ["std", "derive"] }
+serde_json = { workspace = true, features = ["std"] }
+tokio = { workspace = true, features = ["full"] }

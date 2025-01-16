@@ -1,0 +1,12 @@
+[package]
+name = "unikraft-rust-http-echo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+http-library = { path = "../http-library" }
+log = { workspace = true }
+hyper = { workspace = true, features = ["full"] }
+hyper-util = { workspace = true, features = ["full"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = { workspace = true }

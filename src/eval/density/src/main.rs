@@ -9,7 +9,7 @@ use args::Args;
 use anyhow::Result;
 use sandbox_lib::{
     sandbox::Sandbox,
-    firecracker::Firecracker, 
+    firecracker::Firecracker,
     firecracker_snapshot::FirecrackerSnapshot,
     process::Process,
     unikraft::Unikraft,
@@ -66,11 +66,19 @@ fn get_free_avail_mem() -> Result<u64> {
     let output = std::process::Command::new("sh")
         .arg("-c")
         .arg("cat /proc/meminfo | grep MemFree")
-        .output()
-        .expect("Failed to execute command");
+        .output()?;
 
     let output_str = String::from_utf8_lossy(&output.stdout);
-    let mem_free_kb: u64 = output_str.split_whitespace().nth(1).unwrap().parse().unwrap();
+    let mem_free_kb_option =output_str.split_whitespace().nth(1);
+    let mem_free_kb_str= match mem_free_kb_option {
+        Some(mem_free_kb) => mem_free_kb,
+        None => {
+            return Err(anyhow::anyhow!("Failed to get free memory"));
+
+        }
+
+    };
+    let mem_free_kb: u64 = mem_free_kb_str.parse()?;
     let mem_free_mb = mem_free_kb / 1024;
 
     Ok(mem_free_mb)
@@ -109,7 +117,7 @@ async fn start_sandbox_and_wait_for_server(sandbox: &mut Box<dyn Sandbox>) -> Re
                 }
             }
             else {
-                // Wait for 2 s 
+                // Wait for 2 s
                 sleep(Duration::from_secs(2)).await;
             }
         }
@@ -120,9 +128,15 @@ async fn start_sandbox_and_wait_for_server(sandbox: &mut Box<dyn Sandbox>) -> Re
         }
     }
 
-    if sandbox.get_name() != "Firecracker" {
+
+    let sandbox_name = sandbox.get_name();
+    if sandbox_name != "Firecracker" || sandbox_name != "Unikraft" {
         // Send a single request to the server
         send_single_request(sandbox).await?;
+    }
+
+    if sandbox_name == "Process" || sandbox_name == "Hyperlight" {
+        sleep(Duration::from_millis(20)).await;
     }
 
     Ok(())
@@ -137,13 +151,19 @@ async fn init_sandbox(sandbox: &mut Box<dyn Sandbox>, iteration: usize) -> Resul
         Err(e) => {
             error!("Failed to create sandbox: {}", e);
             clean_sandbox(sandbox).await?;
-            return Err(anyhow::anyhow!("Failed to create sandbox"));    
+            return Err(anyhow::anyhow!("Failed to create sandbox"));
         }
     };
 
     // Get free memory
 
-    let free_mem_mb = get_free_avail_mem()?;
+    let free_mem_mb = match get_free_avail_mem() {
+        Ok(free_mem_mb) => free_mem_mb,
+        Err(_e) => {
+            0
+
+        }
+    };
 
     println!("{},FREE_MEM_MB,{},{}", system_name, iteration, free_mem_mb);
 
@@ -198,14 +218,15 @@ async fn main() {
             // Keep creating sandboxes until it breaks
             let mem = match init_sandbox(&mut sandbox, iteration).await {
                 Ok(mem) => mem,
-                Err(_) => {
+                Err(e) => {
+                    println!("{},FAILED", e);
                     break;
                 }
             };
             sandbox_queue .push_back(sandbox);
 
-            // Break if the free memory is less than the memory limit (512 MB being the default) 
-            if mem < args.memory_limit() {
+            // Break if the free memory is less than the memory limit (512 MB being the default)
+            if mem != 0 && mem < args.memory_limit() {
                 break;
             }
 

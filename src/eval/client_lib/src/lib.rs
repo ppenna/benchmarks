@@ -60,6 +60,9 @@ pub async fn send_request(sockaddr: String, http_request: Arc<Vec<u8>>, total_in
 
         // Receive response
         let n = stream.read(&mut response).await?;
+        if n == 0 {
+            return Err(anyhow::anyhow!("Failed to read response"));
+        }
         let reader = tokio::io::BufReader::new(&response[..n] as &[u8]);
         let mut lines = reader.lines();
         while let Some(line) = lines.next_line().await? {
@@ -70,6 +73,8 @@ pub async fn send_request(sockaddr: String, http_request: Arc<Vec<u8>>, total_in
                 break;
             }
         }
+        // Sleep for 2 milliseconds
+        tokio::time::sleep(std::time::Duration::from_millis(2)).await;
     }
 
     debug!("disconnected from server");

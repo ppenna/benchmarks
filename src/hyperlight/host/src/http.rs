@@ -23,11 +23,13 @@ use ::hyper::{
 };
 use ::serde::Deserialize;
 use ::serde_json::Value;
-use std::{collections::VecDeque, sync::{Arc, Mutex}};
 use ::std::{
+    collections::VecDeque,
     future::Future,
     pin::Pin,
+    sync::Arc,
 };
+use ::tokio::sync::Mutex;
 
 //==================================================================================================
 // Structures
@@ -45,18 +47,22 @@ pub struct HttpServer {
 
 impl HttpServer {
     pub fn new(sandbox_file_path: String, init_num_sandboxes: usize) -> Self {
-        let ready_sandboxes: Arc<Mutex<VecDeque<Sandbox>>> =  Arc::new(Mutex::new(VecDeque::new()));
-        for _ in 0..init_num_sandboxes {
-            Self::add_sandbox(ready_sandboxes.clone(), &sandbox_file_path).unwrap()
-        }
-        Self { 
+        let sandbox = Self::create_sandbox(&sandbox_file_path).unwrap();
+        let mut ready_sanboxes = VecDeque::new();
+        ready_sanboxes.push_back(sandbox);
+        let ready_sandboxes: Arc<Mutex<VecDeque<Sandbox>>> = Arc::new(Mutex::new(ready_sanboxes));
+
+        Self {
             sandbox_file_path,
             ready_sandboxes,
         }
     }
 
-    pub fn add_sandbox(ready_sandboxes: Arc<Mutex<VecDeque<Sandbox>>>, sandbox_path: &str) -> Result<()> {
-        let mut locked_sandboxes = ready_sandboxes.lock().unwrap();
+    pub async fn add_sandbox(
+        ready_sandboxes: Arc<Mutex<VecDeque<Sandbox>>>,
+        sandbox_path: &str,
+    ) -> Result<()> {
+        let mut locked_sandboxes = ready_sandboxes.lock().await;
         match Self::create_sandbox(sandbox_path) {
             Ok(sandbox) => {
                 locked_sandboxes.push_back(sandbox);
@@ -135,7 +141,7 @@ impl Service<Request<Incoming>> for HttpServer {
 
             // If the body is empty it is meant to be a pre-creation of a sandbox
             if body.is_empty() {
-                match Self::add_sandbox(ready_sandboxes, &sandbox_path_copy) {
+                match Self::add_sandbox(ready_sandboxes, &sandbox_path_copy).await {
                     Ok(_) => {
                         return Ok(Response::builder()
                             .status(StatusCode::NO_CONTENT)
@@ -148,21 +154,18 @@ impl Service<Request<Incoming>> for HttpServer {
                 }
             }
 
-
             // Check if a sandbox is ready to be used
             let mut sandbox: Sandbox;
             {
                 // Lock scope
-                let mut locked_sandboxes = ready_sandboxes.lock().unwrap();
+                let mut locked_sandboxes = ready_sandboxes.lock().await;
                 sandbox = match locked_sandboxes.pop_front() {
                     Some(sandbox) => sandbox,
-                    None => {
-                        match Self::create_sandbox(&sandbox_path_copy) {
-                            Ok(sandbox) => sandbox,
-                            Err(_) => {
-                                return Ok(Self::internal_server_error());
-                            },
-                        }
+                    None => match Self::create_sandbox(&sandbox_path_copy) {
+                        Ok(sandbox) => sandbox,
+                        Err(_) => {
+                            return Ok(Self::internal_server_error());
+                        },
                     },
                 };
             }
@@ -188,7 +191,7 @@ impl Service<Request<Incoming>> for HttpServer {
             // Return sandbox to the queue
             {
                 // Lock scope
-                let mut locked_sandboxes = ready_sandboxes.lock().unwrap();
+                let mut locked_sandboxes = ready_sandboxes.lock().await;
                 locked_sandboxes.push_back(sandbox);
             }
 

@@ -1,7 +1,7 @@
 {
-  "firecracker_binary_dir": "scripts/firecracker/output",
+  "firecracker_binary_dir": "/h/ppenna/src/nanvix/benchmarks/scripts/firecracker/output",
   "firecracker_socket_prefix": "/tmp/firecracker",
-  "config_file_template": "scripts/firecracker/output/vm_config_template.json",
-  "network_setup_file": "scripts/firecracker/setup_network.sh",
-  "network_cleanup_file": "scripts/firecracker/clean_network.sh"
+  "config_file_template": "/h/ppenna/src/nanvix/benchmarks/scripts/firecracker/output/vm_config_template.json",
+  "network_setup_file": "/h/ppenna/src/nanvix/benchmarks/scripts/firecracker/setup_network.sh",
+  "network_cleanup_file": "/h/ppenna/src/nanvix/benchmarks/scripts/firecracker/clean_network.sh"
 }

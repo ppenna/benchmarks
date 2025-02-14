@@ -73,8 +73,8 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
 
     let presetup_time = Instant::now();
     sandbox.presetup().expect("Failed to presetup VM");
-    let elapsed_in_micros = presetup_time.elapsed().as_micros();
-    println!("{},PRESETUP,{}", &system_name, elapsed_in_micros);
+    let presetup_time = presetup_time.elapsed().as_micros();
+    println!("{},PRESETUP,{}", &system_name, presetup_time);
 
     // Wait for 2 s
     sleep(Duration::from_secs(2)).await;
@@ -82,12 +82,13 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
     let current_time = Instant::now();
 
     // Start the VM
-    match sandbox.start() {
+    let setup_time = match sandbox.start() {
         Ok(_) => {
             let found = wait_for_port(&sandbox.get_target_ip(), sandbox.get_target_port());
             if found {
-                let elapsed_in_micros = current_time.elapsed().as_micros();
-                println!("{},SETUP_SANDBOX,{}", &system_name, elapsed_in_micros);
+                let setup_time = current_time.elapsed().as_micros();
+                println!("{},SETUP_SANDBOX,{}", &system_name, setup_time);
+                setup_time
             } else {
                 error!(
                     "Failed to start {} VM: Port {} is not open",
@@ -104,7 +105,7 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
             // exit the program with an error code
             std::process::exit(1);
         },
-    }
+    };
 
     // Build the request
     if data_size > MAX_REQUEST_SIZE {
@@ -129,6 +130,7 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
     };
 
     println!("{},FIRST_EXECUTION,{}", &system_name, latencies[0]);
+    println!("{},COLD_START_EXECUTION,{}", &system_name, presetup_time + setup_time + latencies[0]);
     // Print the latencies
     for latency in &latencies[1..] {
         println!("{},EXECUTION,{}", &system_name, latency);

@@ -30,7 +30,6 @@ pub struct Process {
 impl Process {
     pub fn new(config_path: &str, iteration: usize) -> Self {
         // Open file
-        println!("Opening config file: {}", config_path);
         let file = std::fs::File::open(config_path).expect("Failed to open config file");
         let mut config: ProcessConfig =
             serde_json::from_reader(file).expect("Failed to load config file");

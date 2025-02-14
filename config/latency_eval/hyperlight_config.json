@@ -1,7 +1,7 @@
 {
-    "guest_binary": "/home/quique/Src/nanvix-hotos-2025/bin/hyperlight-guest-nanvix",
-    "host_binary": "/home/quique/Src/nanvix-hotos-2025/bin/hyperlight-host-nanvix",
+    "guest_binary": "bin/hyperlight-guest-nanvix",
+    "host_binary": "bin/hyperlight-host-nanvix",
     "listen_ip": "127.0.0.1",
     "listen_port": 8080,
-    "output_dir": "/tmp"   
+    "output_dir": "/tmp"
 }

@@ -1,20 +1,39 @@
 mod args;
 
+use ::flexi_logger::{
+    FileSpec,
+    Logger,
+};
 use args::Args;
+use client_lib::{
+    build_request,
+    send_request,
+    MAX_REQUEST_SIZE,
+};
+use log::{
+    debug,
+    error,
+};
 use sandbox_lib::{
-    sandbox::Sandbox,
-    firecracker::Firecracker, 
+    firecracker::Firecracker,
     firecracker_snapshot::FirecrackerSnapshot,
-    process::Process,
-    unikraft::Unikraft,
     hyperlight::Hyperlight,
     net_lib::wait_for_port,
+    process::Process,
+    sandbox::Sandbox,
+    unikraft::Unikraft,
 };
-use client_lib::{build_request, send_request, MAX_REQUEST_SIZE};
-use log::{debug, error};
 use serde::Deserialize;
-use std::time::{Duration, Instant};
-use std::sync::Arc;
+use std::{
+    sync::{
+        Arc,
+        Once,
+    },
+    time::{
+        Duration,
+        Instant,
+    },
+};
 use tokio::time::sleep;
 
 enum EvalType {
@@ -49,7 +68,6 @@ struct EvalsConfig {
     evals: Vec<EvalConfig>,
 }
 
-
 async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total_invocations: u32) {
     let system_name = sandbox.get_name();
 
@@ -58,7 +76,7 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
     let elapsed_in_micros = presetup_time.elapsed().as_micros();
     println!("{},PRESETUP,{}", &system_name, elapsed_in_micros);
 
-    // Wait for 2 s 
+    // Wait for 2 s
     sleep(Duration::from_secs(2)).await;
 
     let current_time = Instant::now();
@@ -71,17 +89,21 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
                 let elapsed_in_micros = current_time.elapsed().as_micros();
                 println!("{},SETUP_SANDBOX,{}", &system_name, elapsed_in_micros);
             } else {
-                error!("Failed to start {} VM: Port {} is not open", &system_name,  sandbox.get_target_port());
+                error!(
+                    "Failed to start {} VM: Port {} is not open",
+                    &system_name,
+                    sandbox.get_target_port()
+                );
                 sandbox.kill().expect("Failed to kill VM");
                 sandbox.cleanup().expect("Failed to cleanup VM");
                 std::process::exit(1);
             }
-        }
+        },
         Err(e) => {
             eprintln!("Failed to start {} VM: {}", &system_name, e);
             // exit the program with an error code
             std::process::exit(1);
-        }
+        },
     }
 
     // Build the request
@@ -97,13 +119,13 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
         Ok(latencies) => {
             debug!("Requests sents successfully");
             latencies
-        }
+        },
         Err(e) => {
             eprintln!("Failed to send request: {}", e);
             sandbox.kill().expect("Failed to kill VM");
             sandbox.cleanup().expect("Failed to cleanup VM");
             std::process::exit(1);
-        }
+        },
     };
 
     println!("{},FIRST_EXECUTION,{}", &system_name, latencies[0]);
@@ -117,37 +139,31 @@ async fn process_sandbox(sandbox: &mut Box<dyn Sandbox>, data_size: usize, total
 
     // Cleanup the VM
     sandbox.cleanup().expect("Failed to cleanup VM");
-
 }
-
 
 #[tokio::main]
 async fn main() {
     let args: Args = Args::parse(std::env::args().collect()).unwrap();
+    initialize(false);
     let file = std::fs::File::open(args.config()).expect("Failed to open main config file");
-    let config: EvalsConfig = serde_json::from_reader(file).expect("Failed to load main config file");
+    let config: EvalsConfig =
+        serde_json::from_reader(file).expect("Failed to load main config file");
 
     println!("SYSTEM,OP_TYPE,LATENCY_MICROSECONDS");
 
     for eval in &config.evals {
         let eval_type = EvalType::from_string(&eval.type_of_eval);
-        for iteration in 0..args.iterations() { 
+        for iteration in 0..args.iterations() {
             let mut sandbox: Box<dyn Sandbox> = match eval_type {
                 EvalType::Firecracker => {
                     Box::new(Firecracker::new(&eval.config_location, iteration))
-                }
-                EvalType::Unikraft => {
-                    Box::new(Unikraft::new(&eval.config_location, iteration))
-                }
-                EvalType::Process => {
-                    Box::new(Process::new(&eval.config_location, iteration))
-                }
+                },
+                EvalType::Unikraft => Box::new(Unikraft::new(&eval.config_location, iteration)),
+                EvalType::Process => Box::new(Process::new(&eval.config_location, iteration)),
                 EvalType::FirecrackerSnapshot => {
                     Box::new(FirecrackerSnapshot::new(&eval.config_location))
-                }
-                EvalType:: Hyperlight => {
-                    Box::new(Hyperlight::new(&eval.config_location, iteration))
-                }
+                },
+                EvalType::Hyperlight => Box::new(Hyperlight::new(&eval.config_location, iteration)),
             };
 
             process_sandbox(&mut sandbox, args.data_size(), args.invocations()).await;
@@ -156,4 +172,19 @@ async fn main() {
             sleep(Duration::from_secs(2)).await;
         }
     }
+}
+
+pub fn initialize(log_to_file: bool) {
+    static INIT_LOG: Once = Once::new();
+    INIT_LOG.call_once(|| {
+        let logger = Logger::try_with_env().expect("malformed RUST_LOG environment variable");
+        if log_to_file {
+            logger
+                .log_to_file(FileSpec::default())
+                .start()
+                .expect("failed to initialize logger");
+        } else {
+            logger.start().expect("failed to initialize logger");
+        }
+    });
 }

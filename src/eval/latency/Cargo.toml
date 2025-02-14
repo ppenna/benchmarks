@@ -7,8 +7,9 @@ edition = "2018"
 client_lib = { path = "../client_lib" }
 sandbox_lib = { path = "../sandbox_lib" }
 anyhow = { workspace = true }
+flexi_logger = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true, features = ["std", "derive"] }
 serde_json = { workspace = true, features = ["std"] }
 tokio = { workspace = true, features = ["full"] }
-uuid = { workspace = true, features = ["v4"]}
+uuid = { workspace = true, features = ["v4"] }

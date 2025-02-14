@@ -7,6 +7,10 @@
         {
             "type_of_eval": "hyperlight",
             "config_location": "config/latency_eval/hyperlight_config.json"
+        },
+        {
+            "type_of_eval": "firecracker",
+            "config_location": "config/latency_eval/firecracker_config.json"
         }
     ]
 }

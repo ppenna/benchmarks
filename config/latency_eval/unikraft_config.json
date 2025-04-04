@@ -1,7 +1,0 @@
-{
-  "guest_port": 8080,
-  "host_port": 8080,
-  "run_dir": "/home/quique/Src/nanvix-hotos-2025/",
-  "memory": "128Mi",
-  "output_dir": "/tmp"
-}

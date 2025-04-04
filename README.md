@@ -1,5 +1,9 @@
 # General configuration
 - See [script](./scripts/setup.sh) for general configuration steps.
+- To generate the basic configuration for the following steps, run the generate_base_configs.py script as follows:
+```bash
+./scripts/generate_base_configs.py
+```
 
 # Evaluation 
 ## Cold start echo

@@ -21,6 +21,12 @@ sudo nft delete table firecracker
 python3 ./scripts/plot/plot_cold_latency.py ./scripts/plot/final_cold_start_latency.csv /tmp/
 ```
 
+### Run specific evaluation
+1. Configure and compile the corresponding system based on the steps below.
+2. Modify the file in ./config/latency_eval/eval_config.json to only contain the eval that you want.
+3. Modify the corresponding file, for example to run the unikraft eval modify the file ./config/latency_eval/unikraft_config.json
+4. Run the steps shown in the previous step.
+
 ## Density echo
 ```bash
 echo "First update all the files in the directory ./config/density-eval to point to the right files"

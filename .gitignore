@@ -21,3 +21,7 @@ target/
 scripts/firecracker/output
 scripts/firecracker/vm_config.json
 firecracker.log
+
+# Avoid generated configuration files
+config/density_eval/*
+config/latency_eval/*

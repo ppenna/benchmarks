@@ -1,4 +1,4 @@
-## General configuration
+# General configuration
 - See [script](./scripts/setup.sh) for general configuration steps.
 
 # Evaluation 
